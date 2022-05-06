@@ -28,6 +28,83 @@ fn enter_instruction(&mut self, _ctx: &InstructionContext<'input>) { }
 fn exit_instruction(&mut self, _ctx: &InstructionContext<'input>) { }
 
 /**
+ * Enter a parse tree produced by {@link lifParser#connect}.
+ * @param ctx the parse tree
+ */
+fn enter_connect(&mut self, _ctx: &ConnectContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#connect}.
+ * @param ctx the parse tree
+ */
+fn exit_connect(&mut self, _ctx: &ConnectContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#create}.
+ * @param ctx the parse tree
+ */
+fn enter_create(&mut self, _ctx: &CreateContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#create}.
+ * @param ctx the parse tree
+ */
+fn exit_create(&mut self, _ctx: &CreateContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#delete}.
+ * @param ctx the parse tree
+ */
+fn enter_delete(&mut self, _ctx: &DeleteContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#delete}.
+ * @param ctx the parse tree
+ */
+fn exit_delete(&mut self, _ctx: &DeleteContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#attach}.
+ * @param ctx the parse tree
+ */
+fn enter_attach(&mut self, _ctx: &AttachContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#attach}.
+ * @param ctx the parse tree
+ */
+fn exit_attach(&mut self, _ctx: &AttachContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#read}.
+ * @param ctx the parse tree
+ */
+fn enter_read(&mut self, _ctx: &ReadContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#read}.
+ * @param ctx the parse tree
+ */
+fn exit_read(&mut self, _ctx: &ReadContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#in_instr}.
+ * @param ctx the parse tree
+ */
+fn enter_in_instr(&mut self, _ctx: &In_instrContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#in_instr}.
+ * @param ctx the parse tree
+ */
+fn exit_in_instr(&mut self, _ctx: &In_instrContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#out}.
+ * @param ctx the parse tree
+ */
+fn enter_out(&mut self, _ctx: &OutContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#out}.
+ * @param ctx the parse tree
+ */
+fn exit_out(&mut self, _ctx: &OutContext<'input>) { }
+
+/**
  * Enter a parse tree produced by {@link lifParser#attribut}.
  * @param ctx the parse tree
  */
@@ -61,26 +138,26 @@ fn enter_tuple_content(&mut self, _ctx: &Tuple_contentContext<'input>) { }
 fn exit_tuple_content(&mut self, _ctx: &Tuple_contentContext<'input>) { }
 
 /**
- * Enter a parse tree produced by {@link lifParser#tupleSpaceName}.
+ * Enter a parse tree produced by {@link lifParser#tuple_space_name}.
  * @param ctx the parse tree
  */
-fn enter_tupleSpaceName(&mut self, _ctx: &TupleSpaceNameContext<'input>) { }
+fn enter_tuple_space_name(&mut self, _ctx: &Tuple_space_nameContext<'input>) { }
 /**
- * Exit a parse tree produced by {@link lifParser#tupleSpaceName}.
+ * Exit a parse tree produced by {@link lifParser#tuple_space_name}.
  * @param ctx the parse tree
  */
-fn exit_tupleSpaceName(&mut self, _ctx: &TupleSpaceNameContext<'input>) { }
+fn exit_tuple_space_name(&mut self, _ctx: &Tuple_space_nameContext<'input>) { }
 
 /**
- * Enter a parse tree produced by {@link lifParser#initvar}.
+ * Enter a parse tree produced by {@link lifParser#init_var}.
  * @param ctx the parse tree
  */
-fn enter_initvar(&mut self, _ctx: &InitvarContext<'input>) { }
+fn enter_init_var(&mut self, _ctx: &Init_varContext<'input>) { }
 /**
- * Exit a parse tree produced by {@link lifParser#initvar}.
+ * Exit a parse tree produced by {@link lifParser#init_var}.
  * @param ctx the parse tree
  */
-fn exit_initvar(&mut self, _ctx: &InitvarContext<'input>) { }
+fn exit_init_var(&mut self, _ctx: &Init_varContext<'input>) { }
 
 /**
  * Enter a parse tree produced by {@link lifParser#protocol}.
@@ -94,15 +171,15 @@ fn enter_protocol(&mut self, _ctx: &ProtocolContext<'input>) { }
 fn exit_protocol(&mut self, _ctx: &ProtocolContext<'input>) { }
 
 /**
- * Enter a parse tree produced by {@link lifParser#ipAddress}.
+ * Enter a parse tree produced by {@link lifParser#ip_address}.
  * @param ctx the parse tree
  */
-fn enter_ipAddress(&mut self, _ctx: &IpAddressContext<'input>) { }
+fn enter_ip_address(&mut self, _ctx: &Ip_addressContext<'input>) { }
 /**
- * Exit a parse tree produced by {@link lifParser#ipAddress}.
+ * Exit a parse tree produced by {@link lifParser#ip_address}.
  * @param ctx the parse tree
  */
-fn exit_ipAddress(&mut self, _ctx: &IpAddressContext<'input>) { }
+fn exit_ip_address(&mut self, _ctx: &Ip_addressContext<'input>) { }
 
 /**
  * Enter a parse tree produced by {@link lifParser#port}.

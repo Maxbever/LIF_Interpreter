@@ -7,28 +7,42 @@ import lifWords;
  */
 root:instruction*;
 
-instruction:    CONNECT protocol DOUBLEDOT ipAddress DOUBLEDOT port
-                |   CREATE attribut tupleSpaceName (attribut)*
-                |   DELETE attribut tupleSpaceName
-                |   ATTACH tupleSpaceName (attribut)*
-                |   OUT tuple
-                |   READ tuple
-                |   IN tuple;
+instruction:    connect
+                |   create
+                |   delete
+                |   attach
+                |   out
+                |   read
+                |   in_instr;
 
-attribut: initvar;
+connect : CONNECT protocol DOUBLEDOT ip_address DOUBLEDOT port;
+
+create: CREATE attribut tuple_space_name (attribut)*;
+
+delete:  DELETE attribut tuple_space_name;
+
+attach: ATTACH tuple_space_name (attribut)*;
+
+read: READ tuple;
+
+in_instr: IN tuple;
+
+out: OUT tuple;
+
+attribut: init_var;
 
 tuple : LPAR (tuple_content (COMMA tuple_content)*) RPAR;
 tuple_content : STRING | WILDCARD | NUMBER | CHARACTER | tuple | ID ;
 
-tupleSpaceName: initvar;
+tuple_space_name: init_var;
 
-initvar:   NUMBER
+init_var:   NUMBER
             | STRING
             | CHARACTER
             | ID;
 
 protocol : UDP | TCP;
 
-ipAddress: NUMBER DOT NUMBER DOT NUMBER DOT NUMBER;
+ip_address: NUMBER DOT NUMBER DOT NUMBER DOT NUMBER;
 
 port: NUMBER;
