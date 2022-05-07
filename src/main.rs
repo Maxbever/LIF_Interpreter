@@ -16,6 +16,7 @@ use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener};
 use antlr_rust::InputStream;
 use server::Server;
+use std::{env, fs};
 
 mod generated_file_antlr;
 mod server;
@@ -29,24 +30,20 @@ impl<'input> ParseTreeListener<'input, lifParserContextType> for Listener {
     // fn visit_error_node(&mut self, _node: &ErrorNode<'_, lifParserContextType>) {
     //     todo!()
     // }
-    fn enter_every_rule(&mut self, _ctx: &dyn lifParserContext<'input>) {
-        println!(
-            "rule entered {}",
-            lifparser::ruleNames
-                .get(_ctx.get_rule_index())
-                .unwrap_or(&"error")
-        )
-    }
+    // fn enter_every_rule(&mut self, _ctx: &dyn lifParserContext<'input>) {
+    //     println!(
+    //         "rule entered {}",
+    //         lifparser::ruleNames
+    //             .get(_ctx.get_rule_index())
+    //             .unwrap_or(&"error")
+    //     )
+    // }
     fn exit_every_rule(&mut self, _ctx: &dyn lifParserContext<'input>) {
         todo!()
     }
 }
 
 impl lifListener<'_> for Listener {
-    fn exit_instruction<'input>(&mut self, _ctx: &InstructionContext<'input>) {
-        todo!()
-    }
-
     fn enter_connect(&mut self, _ctx: &ConnectContext<'_>) {
         if let Some(protocol) = _ctx.protocol() {
             if let Some(ip_address) = _ctx.ip_address() {
@@ -57,7 +54,8 @@ impl lifListener<'_> for Listener {
                         ip_address.get_text(),
                         port.get_text()
                     );
-                    let server = Server::new(ip_address.get_text(),port.get_text(),protocol.get_text());
+                    let server =
+                        Server::new(ip_address.get_text(), port.get_text(), protocol.get_text());
                     let _ = &server.disconnect();
                 }
             }
@@ -87,9 +85,19 @@ impl lifListener<'_> for Listener {
 }
 
 fn main() {
-    let lexer = lifLexer::new(InputStream::new("connect udp:127.0.0.1:9001"));
-    let token_source = CommonTokenStream::new(lexer);
-    let mut parser = lifParser::new(token_source);
-    println!("\nstart parsing lif");
-    lifTreeWalker::walk(Box::new(Listener {}), &*parser.root().unwrap());
+    let args: Vec<String> = env::args().collect();
+    let filename = &args[1];
+
+    match fs::read_to_string(filename) {
+        Ok(content) => {
+            let lexer = lifLexer::new(InputStream::new(content.as_str()));
+            let token_source = CommonTokenStream::new(lexer);
+            let mut parser = lifParser::new(token_source);
+            println!("\nstart parsing lif");
+            lifTreeWalker::walk(Box::new(Listener {}), &*parser.root().unwrap());
+        }
+        Err(error) => {
+            println!("{}", error)
+        }
+    };
 }

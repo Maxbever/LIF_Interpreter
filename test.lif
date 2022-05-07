@@ -1,0 +1,2 @@
+connect tcp:127.0.0.1:9000
+connect udp:127.0.0.1:9001
