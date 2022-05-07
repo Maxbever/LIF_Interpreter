@@ -1,3 +1,6 @@
+use crate::constant;
+use crate::constant::{STOP_SERVER, TIMEOUT};
+use constant::{TCP, UDP};
 use std::io::{BufRead, Write};
 use std::net::{Ipv4Addr, TcpStream, UdpSocket};
 use std::str::from_utf8;
@@ -5,9 +8,6 @@ use std::sync::mpsc;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::time::Duration;
 use std::{io, thread};
-
-pub const STOP_SERVER: &str = "STOP";
-pub const TIMEOUT: u64 = 1;
 
 pub struct Server {
     mpsc_channel: (Sender<String>, Receiver<String>),
@@ -21,7 +21,7 @@ impl Server {
         let (tx_response, rx_response): (Sender<String>, Receiver<String>) = mpsc::channel();
 
         match protocol.as_str() {
-            "tcp" => {
+            TCP => {
                 thread::spawn(move || {
                     match TcpStream::connect(addr) {
                         Ok(mut server) => {
@@ -56,39 +56,34 @@ impl Server {
                     };
                 });
             }
-            "udp" => {
+            UDP => {
                 thread::spawn(move || {
                     match UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)) {
                         Ok(mut server) => {
                             match server.connect(addr) {
-                                Ok(_) => {
-                                    loop {
-                                        match &rx.try_recv() {
-                                            Ok(message) => {
-                                                if STOP_SERVER.eq(message.as_str()) {
-                                                    break;
-                                                }
-                                                match server.send(message.as_bytes()) {
-                                                    Ok(_) => {
-                                                        println!("{} sent", message)
-                                                    }
-                                                    Err(e) => {
-                                                        eprintln!("{}", e)
-                                                    }
-                                                };
-                                                Server::read_response_udp(
-                                                    &mut server,
-                                                    &tx_response,
-                                                );
-                                            }
-                                            Err(TryRecvError::Disconnected) => {
-                                                println!("Terminating.");
+                                Ok(_) => loop {
+                                    match &rx.try_recv() {
+                                        Ok(message) => {
+                                            if STOP_SERVER.eq(message.as_str()) {
                                                 break;
                                             }
-                                            Err(_) => {}
-                                        };
-                                    }
-                                }
+                                            match server.send(message.as_bytes()) {
+                                                Ok(_) => {
+                                                    println!("{} sent", message)
+                                                }
+                                                Err(e) => {
+                                                    eprintln!("{}", e)
+                                                }
+                                            };
+                                            Server::read_response_udp(&mut server, &tx_response);
+                                        }
+                                        Err(TryRecvError::Disconnected) => {
+                                            println!("Terminating.");
+                                            break;
+                                        }
+                                        Err(_) => {}
+                                    };
+                                },
                                 Err(_) => {}
                             };
                         }
@@ -138,7 +133,7 @@ impl Server {
 
     pub fn read_response_udp(server: &mut UdpSocket, tx_response: &Sender<String>) {
         let mut buf = [0; 64];
-
+        println!("Start waiting response");
         loop {
             match server.recv(&mut buf) {
                 Ok(response) => {
@@ -163,6 +158,7 @@ impl Server {
                 eprintln!("{}", error)
             }
         };
+
         loop {
             match rx_response.recv_timeout(Duration::from_secs(TIMEOUT)) {
                 Ok(response) => {

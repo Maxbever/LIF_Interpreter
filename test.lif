@@ -1,2 +1,5 @@
 connect tcp:127.0.0.1:9000
-connect udp:127.0.0.1:9001
+//connect udp:127.0.0.1:9001
+create admin test test
+attach test test
+out ("test")

@@ -2,6 +2,7 @@
 #![feature(receiver_trait)]
 extern crate lazy_static;
 
+use crate::constant::{ATTACH, CREATE, OUT, SPACE};
 use crate::generated_file_antlr::liflexer::lifLexer;
 use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
@@ -10,18 +11,33 @@ use crate::generated_file_antlr::lifparser::{
     lifParserContextType, AttributContext, InstructionContext, TupleContext, Tuple_contentContext,
 };
 use crate::lifparser::{
-    lifTreeWalker, ConnectContext, ConnectContextAttrs, Tuple_space_nameContext,
+    lifTreeWalker, AttachContext, AttachContextAttrs, ConnectContext, ConnectContextAttrs,
+    CreateContext, CreateContextAttrs, DeleteContext, In_instrContext, Init_varContext,
+    Ip_addressContext, OutContext, OutContextAttrs, PortContext, ProtocolContext, ReadContext,
+    RootContext, Tuple_space_nameContext,
 };
 use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener};
 use antlr_rust::InputStream;
 use server::Server;
+use std::collections::HashMap;
 use std::{env, fs};
 
+mod constant;
 mod generated_file_antlr;
 mod server;
 
-struct Listener;
+struct Listener {
+    server_list: HashMap<String, Server>,
+}
+
+impl Listener {
+    pub fn new<'a>() -> Listener {
+        Listener {
+            server_list: HashMap::with_capacity(64),
+        }
+    }
+}
 
 impl<'input> ParseTreeListener<'input, lifParserContextType> for Listener {
     // fn visit_terminal(&mut self, _node: &TerminalNode<'_, lifParserContextType>) {
@@ -48,39 +64,104 @@ impl lifListener<'_> for Listener {
         if let Some(protocol) = _ctx.protocol() {
             if let Some(ip_address) = _ctx.ip_address() {
                 if let Some(port) = _ctx.port() {
-                    println!(
-                        "connect entered {}:{}:{}",
-                        protocol.get_text(),
-                        ip_address.get_text(),
-                        port.get_text()
-                    );
                     let server =
                         Server::new(ip_address.get_text(), port.get_text(), protocol.get_text());
-                    let _ = &server.disconnect();
+                    self.server_list.insert("test".parse().unwrap(), server); //TODO Manage server list
                 }
             }
         }
     }
-    fn enter_attribut<'input>(&mut self, _ctx: &AttributContext<'input>) {
-        todo!()
+    fn enter_create(&mut self, _ctx: &CreateContext<'_>) {
+        if let Some(attribute) = _ctx.attribut(0) {
+            if let Some(tuple_space_name) = _ctx.tuple_space_name() {
+                let server = self.server_list.get(&*String::from("test"));
+                match server {
+                    None => {}
+                    Some(server) => {
+                        if let Some(_) = _ctx.attribut(1) {
+                            let mut attribute_list: String = String::new();
+                            let mut list = _ctx.attribut_all();
+                            list.remove(0);
+                            for attribute in list {
+                                attribute_list += &attribute.get_text();
+                            }
+                            println!(
+                                "{}",
+                                server.send_message(
+                                    String::from(CREATE)
+                                        + SPACE
+                                        + &*attribute.get_text()
+                                        + SPACE
+                                        + &*tuple_space_name.get_text()
+                                        + SPACE
+                                        + &*attribute_list
+                                )
+                            );
+                        } else {
+                            println!(
+                                "{}",
+                                server.send_message(
+                                    String::from(CREATE)
+                                        + SPACE
+                                        + &*attribute.get_text()
+                                        + SPACE
+                                        + &*tuple_space_name.get_text()
+                                )
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
-    fn exit_attribut<'input>(&mut self, _ctx: &AttributContext<'input>) {
-        todo!()
+
+    fn enter_attach(&mut self, _ctx: &AttachContext<'_>) {
+        if let Some(tuple_space_name) = _ctx.tuple_space_name() {
+            let server = self.server_list.get(&*String::from("test"));
+            match server {
+                None => {}
+                Some(server) => {
+                    if let Some(_) = _ctx.attribut(0) {
+                        let mut attribute_list: String = String::new();
+                        for attribute in _ctx.attribut_all() {
+                            attribute_list += &attribute.get_text();
+                        }
+                        println!(
+                            "{}",
+                            server.send_message(
+                                String::from(ATTACH)
+                                    + SPACE
+                                    + &*tuple_space_name.get_text()
+                                    + SPACE
+                                    + &*attribute_list
+                            )
+                        );
+                    } else {
+                        println!(
+                            "{}",
+                            server.send_message(
+                                String::from(ATTACH) + SPACE + &*tuple_space_name.get_text()
+                            )
+                        );
+                    }
+                }
+            }
+        }
     }
-    fn enter_tuple<'input>(&mut self, _ctx: &TupleContext<'input>) {
-        todo!()
-    }
-    fn exit_tuple<'input>(&mut self, _ctx: &TupleContext<'input>) {
-        todo!()
-    }
-    fn enter_tuple_content<'input>(&mut self, _ctx: &Tuple_contentContext<'input>) {
-        todo!()
-    }
-    fn exit_tuple_content<'input>(&mut self, _ctx: &Tuple_contentContext<'input>) {
-        todo!()
-    }
-    fn enter_tuple_space_name(&mut self, _ctx: &Tuple_space_nameContext<'_>) {
-        todo!()
+
+    fn enter_out(&mut self, _ctx: &OutContext<'_>) {
+        if let Some(tuple) = _ctx.tuple() {
+            let server = self.server_list.get(&*String::from("test"));
+            match server {
+                None => {}
+                Some(server) => {
+                    println!(
+                        "{}",
+                        server.send_message(String::from(OUT) + SPACE + &*tuple.get_text())
+                    );
+                }
+            }
+        }
     }
 }
 
@@ -93,8 +174,8 @@ fn main() {
             let lexer = lifLexer::new(InputStream::new(content.as_str()));
             let token_source = CommonTokenStream::new(lexer);
             let mut parser = lifParser::new(token_source);
-            println!("\nstart parsing lif");
-            lifTreeWalker::walk(Box::new(Listener {}), &*parser.root().unwrap());
+            println!("Start parsing lif");
+            lifTreeWalker::walk(Box::new(Listener::new()), &*parser.root().unwrap());
         }
         Err(error) => {
             println!("{}", error)
