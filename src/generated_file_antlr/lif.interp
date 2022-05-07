@@ -81,7 +81,7 @@ tuple
 tuple_content
 tuple_space_name
 init_var
-protocol
+Protocol
 ip_address
 port
 
