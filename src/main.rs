@@ -2,20 +2,15 @@
 #![feature(receiver_trait)]
 extern crate lazy_static;
 
-use crate::constant::{ATTACH, CREATE, OUT, SPACE};
+use crate::constant::{ATTACH, CREATE, DELETE, IN, OUT, READ, SPACE};
 use crate::generated_file_antlr::liflexer::lifLexer;
 use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
 use crate::generated_file_antlr::lifparser::{lifParser, lifParserContext};
 use crate::generated_file_antlr::lifparser::{
-    lifParserContextType, AttributContext, InstructionContext, TupleContext, Tuple_contentContext,
+    lifParserContextType
 };
-use crate::lifparser::{
-    lifTreeWalker, AttachContext, AttachContextAttrs, ConnectContext, ConnectContextAttrs,
-    CreateContext, CreateContextAttrs, DeleteContext, In_instrContext, Init_varContext,
-    Ip_addressContext, OutContext, OutContextAttrs, PortContext, ProtocolContext, ReadContext,
-    RootContext, Tuple_space_nameContext,
-};
+use crate::lifparser::{lifTreeWalker, AttachContext, AttachContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, In_instrContext, In_instrContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs, RootContext, InstructionContext, DeleteContext, AttributContext, TupleContext, Tuple_contentContext, Tuple_space_nameContext, Init_varContext, ProtocolContext, Ip_addressContext, PortContext, DeleteContextAttrs};
 use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener};
 use antlr_rust::InputStream;
@@ -31,11 +26,76 @@ struct Listener {
     server_list: HashMap<String, Server>,
 }
 
+enum TupleOperationContext<'input, 'a> {
+    OutContext(&'a OutContext<'input>),
+    InContext(&'a In_instrContext<'input>),
+    ReadContext(&'a ReadContext<'input>),
+}
+
 impl Listener {
     pub fn new<'a>() -> Listener {
         Listener {
             server_list: HashMap::with_capacity(64),
         }
+    }
+
+    fn manage_tuple_operation(&mut self, _ctx: TupleOperationContext, operation: &str) {
+        match _ctx {
+            TupleOperationContext::OutContext(context) => {
+                if let Some(_) = context.tuple(0) {
+                    let server = self.server_list.get(&*String::from("test"));
+                    match server {
+                        None => {}
+                        Some(server) => {
+                            let mut tuple_list: String = String::new();
+                            for tuple in context.tuple_all() {
+                                tuple_list += &tuple.get_text();
+                            }
+                            println!(
+                                "{}",
+                                server.send_message(String::from(operation) + SPACE + &*tuple_list)
+                            );
+                        }
+                    }
+                }
+            }
+            TupleOperationContext::InContext(context) => {
+                if let Some(_) = context.tuple(0) {
+                    let server = self.server_list.get(&*String::from("test"));
+                    match server {
+                        None => {}
+                        Some(server) => {
+                            let mut tuple_list: String = String::new();
+                            for tuple in context.tuple_all() {
+                                tuple_list += &tuple.get_text();
+                            }
+                            println!(
+                                "{}",
+                                server.send_message(String::from(operation) + SPACE + &*tuple_list)
+                            );
+                        }
+                    }
+                }
+            }
+            TupleOperationContext::ReadContext(context) => {
+                if let Some(_) = context.tuple(0) {
+                    let server = self.server_list.get(&*String::from("test"));
+                    match server {
+                        None => {}
+                        Some(server) => {
+                            let mut tuple_list: String = String::new();
+                            for tuple in context.tuple_all() {
+                                tuple_list += &tuple.get_text();
+                            }
+                            println!(
+                                "{}",
+                                server.send_message(String::from(operation) + SPACE + &*tuple_list)
+                            );
+                        }
+                    }
+                }
+            }
+        };
     }
 }
 
@@ -83,7 +143,7 @@ impl lifListener<'_> for Listener {
                             let mut list = _ctx.attribut_all();
                             list.remove(0);
                             for attribute in list {
-                                attribute_list += &attribute.get_text();
+                                attribute_list += &*(" ".to_string() + &attribute.get_text());
                             }
                             println!(
                                 "{}",
@@ -124,7 +184,7 @@ impl lifListener<'_> for Listener {
                     if let Some(_) = _ctx.attribut(0) {
                         let mut attribute_list: String = String::new();
                         for attribute in _ctx.attribut_all() {
-                            attribute_list += &attribute.get_text();
+                            attribute_list += &*(" ".to_string() + &attribute.get_text());
                         }
                         println!(
                             "{}",
@@ -149,16 +209,43 @@ impl lifListener<'_> for Listener {
         }
     }
 
+    fn enter_read(&mut self, _ctx: &ReadContext<'_>) {
+        self.manage_tuple_operation(TupleOperationContext::ReadContext(_ctx), READ);
+    }
+
+    fn enter_in_instr(&mut self, _ctx: &In_instrContext<'_>) {
+        self.manage_tuple_operation(TupleOperationContext::InContext(_ctx), IN);
+    }
+
     fn enter_out(&mut self, _ctx: &OutContext<'_>) {
-        if let Some(tuple) = _ctx.tuple() {
+        self.manage_tuple_operation(TupleOperationContext::OutContext(_ctx), OUT);
+    }
+
+    fn enter_delete(&mut self, _ctx: &DeleteContext<'_>) {
+        if let Some(tuple_space_name) = _ctx.tuple_space_name() {
             let server = self.server_list.get(&*String::from("test"));
             match server {
                 None => {}
                 Some(server) => {
-                    println!(
-                        "{}",
-                        server.send_message(String::from(OUT) + SPACE + &*tuple.get_text())
-                    );
+                    if let Some(attribute) = _ctx.attribut() {
+                        println!(
+                            "{}",
+                            server.send_message(
+                                String::from(DELETE)
+                                    + SPACE
+                                    + &*attribute.get_text()
+                                    + SPACE
+                                    + &*tuple_space_name.get_text()
+                            )
+                        );
+                    } else {
+                        println!(
+                            "{}",
+                            server.send_message(
+                                String::from(DELETE) + SPACE + &*tuple_space_name.get_text()
+                            )
+                        );
+                    }
                 }
             }
         }

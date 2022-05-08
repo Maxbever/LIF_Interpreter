@@ -1,5 +1,14 @@
-connect tcp:127.0.0.1:9000
-//connect udp:127.0.0.1:9001
-create admin test test
-attach test test
-out ("test")
+//connect tcp:127.0.0.1:9000
+connect udp:127.0.0.1:9001
+create admin test readatt inatt outatt deleteatt
+attach test readatt inatt outatt
+out ("test",45),("test2",78)
+read (_,45),(_,78)
+in (_),(_)
+delete deleteatt test
+create admin test2 test2
+attach test2 test2
+out ("test",45),("test2",78)
+read (_,45),(_,78)
+in (_),(_)
+delete test2 test2

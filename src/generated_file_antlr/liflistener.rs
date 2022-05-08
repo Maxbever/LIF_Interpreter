@@ -1,5 +1,5 @@
 #![allow(nonstandard_style)]
-// Generated from lif.g4 by ANTLR 4.8
+// Generated from .\lif.g4 by ANTLR 4.8
 use antlr_rust::tree::ParseTreeListener;
 use super::lifparser::*;
 

@@ -23,11 +23,11 @@ delete:  DELETE attribut tuple_space_name;
 
 attach: ATTACH tuple_space_name (attribut)*;
 
-read: READ tuple;
+read: READ tuple(COMMA tuple)*;
 
-in_instr: IN tuple;
+in_instr: IN tuple(COMMA tuple)*;
 
-out: OUT tuple;
+out: OUT tuple(COMMA tuple)*;
 
 attribut: init_var;
 

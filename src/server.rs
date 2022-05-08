@@ -51,7 +51,7 @@ impl Server {
                             }
                         }
                         Err(error) => {
-                            println!("{}", error);
+                            panic!("{}", error);
                         }
                     };
                 });
