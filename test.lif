@@ -1,7 +1,7 @@
 //connect tcp:127.0.0.1:9000
 connect udp:127.0.0.1:9001
 create admin test readatt inatt outatt deleteatt
-attach test readatt inatt outatt
+attach test inatt outatt
 out ("test",45),("test2",78)
 read (_,45),(_,78)
 in (_),(_)
@@ -9,6 +9,10 @@ delete deleteatt test
 create admin test2 test2
 attach test2 test2
 out ("test",45),("test2",78)
-read (_,45),(_,78)
+read (_),(_)
 in (_),(_)
 delete test2 test2
+var t = "x"
+var e = 12
+var r = '4'
+var m = t

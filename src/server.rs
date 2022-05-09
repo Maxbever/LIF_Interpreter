@@ -84,7 +84,7 @@ impl Server {
                                         Err(_) => {}
                                     };
                                 },
-                                Err(_) => {}
+                                Err(error) => {panic!("{}",error)}
                             };
                         }
                         Err(error) => {
@@ -133,7 +133,6 @@ impl Server {
 
     pub fn read_response_udp(server: &mut UdpSocket, tx_response: &Sender<String>) {
         let mut buf = [0; 64];
-        println!("Start waiting response");
         loop {
             match server.recv(&mut buf) {
                 Ok(response) => {

@@ -14,6 +14,7 @@ READ : 'read';
 IN : 'in';
 TCP : 'tcp';
 UDP : 'udp';
+VAR : 'var';
 
 // Char
 LPAR: '(';
@@ -30,6 +31,7 @@ DOUBLEDOT : ':';
 SEMICOLON : ';';
 KLEENE : '*';
 WILDCARD: '_';
+EQUAL : '=';
 
 ID: LETTER (LETTER | DIGIT)* ;
 fragment LETTER: 'A'..'Z' | 'a'..'z' ;

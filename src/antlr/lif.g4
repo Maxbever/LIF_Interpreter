@@ -13,7 +13,8 @@ instruction:    connect
                 |   attach
                 |   out
                 |   read
-                |   in_instr;
+                |   in_instr
+                |   assignation;
 
 connect : CONNECT protocol DOUBLEDOT ip_address DOUBLEDOT port;
 
@@ -29,17 +30,20 @@ in_instr: IN tuple(COMMA tuple)*;
 
 out: OUT tuple(COMMA tuple)*;
 
-attribut: init_var;
+assignation : VAR ID EQUAL init_var;
 
-tuple : LPAR (tuple_content (COMMA tuple_content)*) RPAR;
+attribut: STRING | ID ;
+
+tuple : LPAR (tuple_content (COMMA tuple_content)*) RPAR | ID;
 tuple_content : STRING | WILDCARD | NUMBER | CHARACTER | tuple | ID ;
 
-tuple_space_name: init_var;
+tuple_space_name: STRING | ID ;
 
 init_var:   NUMBER
             | STRING
             | CHARACTER
-            | ID;
+            | ID
+            | tuple;
 
 protocol : UDP | TCP;
 
