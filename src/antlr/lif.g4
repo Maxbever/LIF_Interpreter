@@ -35,7 +35,7 @@ assignation : VAR ID EQUAL init_var;
 attribut: STRING | ID ;
 
 tuple : LPAR (tuple_content (COMMA tuple_content)*) RPAR | ID;
-tuple_content : STRING | WILDCARD | NUMBER | CHARACTER | tuple | ID ;
+tuple_content : init_var | WILDCARD ;
 
 tuple_space_name: STRING | ID ;
 

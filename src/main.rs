@@ -7,16 +7,23 @@ use crate::constant::{ATTACH, CREATE, DELETE, IN, OUT, READ, SPACE};
 use crate::generated_file_antlr::liflexer::lifLexer;
 use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
+use crate::generated_file_antlr::lifparser::lifParser;
 use crate::generated_file_antlr::lifparser::lifParserContextType;
-use crate::generated_file_antlr::lifparser::{lifParser, lifParserContext};
-use crate::lifparser::{lifTreeWalker, AssignationContext, AttachContext, AttachContextAttrs, AttributContext, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContext, Init_varContextAttrs, InstructionContext, Ip_addressContext, OutContext, OutContextAttrs, PortContext, ProtocolContext, ReadContext, ReadContextAttrs, RootContext, TupleContext, Tuple_contentContext, Tuple_space_nameContext, AssignationContextAttrs, Init_varContextAll};
+use crate::lifparser::{
+    lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs,
+    AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext,
+    CreateContextAttrs, DeleteContext, DeleteContextAttrs, In_instrContext, In_instrContextAttrs,
+    Init_varContextAll, Init_varContextAttrs, OutContext, OutContextAttrs, ReadContext,
+    ReadContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAll,
+    Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs,
+};
 use antlr_rust::common_token_stream::CommonTokenStream;
-use antlr_rust::tree::{ParseTree, ParseTreeListener};
+use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
 use antlr_rust::InputStream;
 use server::Server;
 use std::collections::HashMap;
-use std::{env, fs};
 use std::rc::Rc;
+use std::{env, fs};
 
 mod constant;
 mod generated_file_antlr;
@@ -24,7 +31,7 @@ mod server;
 
 struct Listener {
     server_list: HashMap<String, Server>,
-    symbol_table: HashMap<String, Value>
+    symbol_table: HashMap<String, Value>,
 }
 
 enum Value {
@@ -33,30 +40,39 @@ enum Value {
     Tuple(Vec<Value>),
     Char(char),
     ID(Box<Value>),
-    Error(String)
+}
+
+impl Value {
+    fn get_value(&self) -> String {
+        match self {
+            Value::String(value) => "\"".to_owned() + &value.clone() + &*"\"",
+            Value::Number(value) => value.to_string(),
+            Value::Tuple(value) => {
+                let mut tuple_string: String = String::from('(');
+                for i in 0..value.len() {
+                    let value_tuple = value.get(i).unwrap();
+                    tuple_string += &*value_tuple.get_value();
+                    if (i != value.len()-1){
+                        tuple_string.push(',')
+                    }
+                }
+                tuple_string += ")";
+                tuple_string
+            }
+            Value::Char(value) => value.to_string(),
+            Value::ID(value) => value.get_value(),
+        }
+    }
 }
 
 impl Clone for Value {
     fn clone(&self) -> Self {
         match self {
-            Value::String(val) => {
-                Value::String(val.clone())
-            }
-            Value::Number(val) => {
-                Value::Number(val.clone())
-            }
-            Value::Tuple(val) => {
-                Value::Tuple(val.clone())
-            }
-            Value::Char(val) => {
-                Value::Char(val.clone())
-            }
-            Value::ID(val) => {
-                Value::ID(val.clone())
-            }
-            Value::Error(val) => {
-                Value::Error(val.clone())
-            }
+            Value::String(val) => Value::String(val.clone()),
+            Value::Number(val) => Value::Number(val.clone()),
+            Value::Tuple(val) => Value::Tuple(val.clone()),
+            Value::Char(val) => Value::Char(val.clone()),
+            Value::ID(val) => Value::ID(val.clone()),
         }
     }
 }
@@ -79,54 +95,61 @@ impl Listener {
         match _ctx {
             TupleOperationContext::OutContext(context) => {
                 if let Some(_) = context.tuple(0) {
-                    let server = self.server_list.get(&*String::from("test"));
+                    let server_name = String::from("test");
+                    let server = self.server_list.remove(&*server_name);
                     match server {
                         None => {}
                         Some(server) => {
                             let mut tuple_list: String = String::new();
                             for tuple in context.tuple_all() {
-                                tuple_list += &tuple.get_text();
+                                let tuple_value = self.validate_tuple(tuple).clone();
+                                tuple_list.push_str(&*tuple_value);
                             }
                             println!(
                                 "{}",
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list)
                             );
+                            &self.server_list.insert(server_name, server);
                         }
                     }
                 }
             }
             TupleOperationContext::InContext(context) => {
                 if let Some(_) = context.tuple(0) {
-                    let server = self.server_list.get(&*String::from("test"));
+                    let server_name = String::from("test");
+                    let server = self.server_list.remove(&*server_name);
                     match server {
                         None => {}
                         Some(server) => {
                             let mut tuple_list: String = String::new();
                             for tuple in context.tuple_all() {
-                                tuple_list += &tuple.get_text();
+                                tuple_list += &*self.validate_tuple(tuple);
                             }
                             println!(
                                 "{}",
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list)
                             );
+                            &self.server_list.insert(server_name, server);
                         }
                     }
                 }
             }
             TupleOperationContext::ReadContext(context) => {
                 if let Some(_) = context.tuple(0) {
-                    let server = self.server_list.get(&*String::from("test"));
+                    let server_name = String::from("test");
+                    let server = self.server_list.remove(&*server_name);
                     match server {
                         None => {}
                         Some(server) => {
                             let mut tuple_list: String = String::new();
                             for tuple in context.tuple_all() {
-                                tuple_list += &tuple.get_text();
+                                tuple_list += &*self.validate_tuple(tuple);
                             }
                             println!(
                                 "{}",
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list)
                             );
+                            &self.server_list.insert(server_name, server);
                         }
                     }
                 }
@@ -135,50 +158,124 @@ impl Listener {
     }
 
     fn enter_init_var(&mut self, _ctx: Rc<Init_varContextAll>) -> Value {
-        let mut error_message = String::from("Error in vairable assignation");
         if let Some(string_context) = _ctx.STRING() {
-            return Value::String(string_context.get_text());
+            let mut string = string_context.get_text();
+            string.pop();
+            string.remove(0);
+            return Value::String(string);
         } else if let Some(number_context) = _ctx.NUMBER() {
             return Value::Number(number_context.get_text().parse::<u32>().unwrap());
         } else if let Some(tuple_context) = _ctx.tuple() {
-            return Value::Tuple(Vec::new()); //TODO
+            return if let Some(id_context) = tuple_context.ID() {
+                Value::Tuple(vec![self.add_variable_in_variable(id_context)])
+            } else {
+                let mut tuple_list: Vec<Value> = Vec::new();
+                for tuple in tuple_context.tuple_content_all() {
+                    let mut tuple_value: Value;
+                    if let Some(_) = tuple.WILDCARD() {
+                        tuple_value = Value::Char('_');
+                    } else {
+                        tuple_value = self.enter_init_var(tuple.init_var().unwrap())
+                    }
+                    tuple_list.push(tuple_value);
+                }
+                Value::Tuple(tuple_list)
+            };
         } else if let Some(id_context) = _ctx.ID() {
-            let id_variable: String = id_context.get_text();
-            match self.symbol_table.remove(&id_variable) {
-                None => {
-                    error_message = format!("Variable {} doesn't exist", id_context.get_text());
-                }
-                Some(variable) => {
-                    self.symbol_table.insert(id_variable, variable.clone());
-                    return Value::ID(Box::from(variable));
-                }
-            }
+            return self.add_variable_in_variable(id_context);
         } else if let Some(char_context) = _ctx.CHARACTER() {
             return Value::Char(char_context.get_text().chars().nth(0).unwrap());
         }
-        return Value::Error(error_message)
+        panic!("Variable not well defined")
+    }
+
+    fn add_variable_in_variable(
+        &mut self,
+        id_context: Rc<TerminalNode<lifParserContextType>>,
+    ) -> Value {
+        let id_variable: String = id_context.get_text();
+        match self.symbol_table.remove(&id_variable) {
+            None => {
+                panic!("Variable {} doesn't exist", id_context.get_text());
+            }
+            Some(variable) => {
+                self.symbol_table.insert(id_variable, variable.clone());
+                return Value::ID(Box::from(variable));
+            }
+        }
+    }
+
+    fn validate_attribute(&self, attribute: Rc<AttributContextAll>) -> String {
+        return if let Some(id_attribute) = attribute.ID() {
+            self.validate_variable(id_attribute)
+        } else {
+            attribute.get_text()
+        };
+    }
+
+    fn validate_tuple_name(&self, attribute: Rc<Tuple_space_nameContextAll>) -> String {
+        return if let Some(id_attribute) = attribute.ID() {
+            self.validate_variable(id_attribute)
+        } else {
+            attribute.get_text()
+        };
+    }
+
+    fn validate_variable(&self, id_attribute: Rc<TerminalNode<lifParserContextType>>) -> String {
+        let id_variable = id_attribute.get_text();
+        match self.symbol_table.get(&id_variable) {
+            None => {
+                panic!("Variable {} not found", &id_variable)
+            }
+            Some(variable) => match variable {
+                Value::String(_) | Value::ID(_) => {
+                    return variable.get_value();
+                }
+                Value::Number(_) | Value::Tuple(_) | Value::Char(_) => {
+                    panic!("Value not available for an attribute")
+                }
+            },
+        }
+    }
+
+    fn validate_tuple(&mut self, all_tuple: Rc<TupleContextAll>) -> String {
+        if let Some(id_tuple) = all_tuple.ID() {
+            let id_variable = id_tuple.get_text();
+            match self.symbol_table.get(&id_variable) {
+                None => {
+                    panic!("Variable {} not found", &id_variable)
+                }
+                Some(variable) => match variable {
+                    Value::Tuple(_) | Value::ID(_) => {
+                        return variable.get_value();
+                    }
+                    Value::Number(_) | Value::String(_) | Value::Char(_) => {
+                        panic!("Value not available for an attribute")
+                    }
+                },
+            }
+        } else {
+            let mut tuple_list: String = String::from("(");
+            for i in 0..all_tuple.tuple_content_all().len() {
+                if let Some(tuple) = all_tuple.tuple_content(i) {
+                    let mut tuple_value: String = String::new();
+                    if let Some(_) = tuple.WILDCARD() {
+                        tuple_value += "_";
+                    } else {
+                        tuple_value += &*self.enter_init_var(tuple.init_var().unwrap()).get_value();
+                    }
+                    if i != all_tuple.tuple_content_all().len()-1 {
+                        tuple_value.push_str(", ");
+                    }
+                    tuple_list += &*tuple_value;
+                }
+            }
+            return tuple_list + ")";
+        }
     }
 }
 
-impl<'input> ParseTreeListener<'input, lifParserContextType> for Listener {
-    // fn visit_terminal(&mut self, _node: &TerminalNode<'_, lifParserContextType>) {
-    //     todo!()
-    // }
-    // fn visit_error_node(&mut self, _node: &ErrorNode<'_, lifParserContextType>) {
-    //     todo!()
-    // }
-    // fn enter_every_rule(&mut self, _ctx: &dyn lifParserContext<'input>) {
-    //     println!(
-    //         "rule entered {}",
-    //         lifparser::ruleNames
-    //             .get(_ctx.get_rule_index())
-    //             .unwrap_or(&"error")
-    //     )
-    // }
-    fn exit_every_rule(&mut self, _ctx: &dyn lifParserContext<'input>) {
-        todo!()
-    }
-}
+impl ParseTreeListener<'_, lifParserContextType> for Listener {}
 
 impl lifListener<'_> for Listener {
     fn enter_connect(&mut self, _ctx: &ConnectContext<'_>) {
@@ -192,6 +289,7 @@ impl lifListener<'_> for Listener {
             }
         }
     }
+
     fn enter_create(&mut self, _ctx: &CreateContext<'_>) {
         if let Some(attribute) = _ctx.attribut(0) {
             if let Some(tuple_space_name) = _ctx.tuple_space_name() {
@@ -204,16 +302,17 @@ impl lifListener<'_> for Listener {
                             let mut list = _ctx.attribut_all();
                             list.remove(0);
                             for attribute in list {
-                                attribute_list += &*(" ".to_string() + &attribute.get_text());
+                                attribute_list +=
+                                    &*(self.validate_attribute(attribute) + &*" ".to_string());
                             }
                             println!(
                                 "{}",
                                 server.send_message(
                                     String::from(CREATE)
                                         + SPACE
-                                        + &*attribute.get_text()
+                                        + &*self.validate_attribute(attribute)
                                         + SPACE
-                                        + &*tuple_space_name.get_text()
+                                        + &*self.validate_tuple_name(tuple_space_name)
                                         + SPACE
                                         + &*attribute_list
                                 )
@@ -224,9 +323,9 @@ impl lifListener<'_> for Listener {
                                 server.send_message(
                                     String::from(CREATE)
                                         + SPACE
-                                        + &*attribute.get_text()
+                                        + &*self.validate_attribute(attribute)
                                         + SPACE
-                                        + &*tuple_space_name.get_text()
+                                        + &*self.validate_tuple_name(tuple_space_name)
                                 )
                             );
                         }
@@ -248,16 +347,18 @@ impl lifListener<'_> for Listener {
                             server.send_message(
                                 String::from(DELETE)
                                     + SPACE
-                                    + &*attribute.get_text()
+                                    + &*self.validate_attribute(attribute)
                                     + SPACE
-                                    + &*tuple_space_name.get_text()
+                                    + &*self.validate_tuple_name(tuple_space_name)
                             )
                         );
                     } else {
                         println!(
                             "{}",
                             server.send_message(
-                                String::from(DELETE) + SPACE + &*tuple_space_name.get_text()
+                                String::from(DELETE)
+                                    + SPACE
+                                    + &*self.validate_tuple_name(tuple_space_name)
                             )
                         );
                     }
@@ -275,14 +376,15 @@ impl lifListener<'_> for Listener {
                     if let Some(_) = _ctx.attribut(0) {
                         let mut attribute_list: String = String::new();
                         for attribute in _ctx.attribut_all() {
-                            attribute_list += &*(" ".to_string() + &attribute.get_text());
+                            attribute_list +=
+                                &*(self.validate_attribute(attribute) + &*" ".to_string());
                         }
                         println!(
                             "{}",
                             server.send_message(
                                 String::from(ATTACH)
                                     + SPACE
-                                    + &*tuple_space_name.get_text()
+                                    + &*self.validate_tuple_name(tuple_space_name)
                                     + SPACE
                                     + &*attribute_list
                             )
@@ -291,7 +393,9 @@ impl lifListener<'_> for Listener {
                         println!(
                             "{}",
                             server.send_message(
-                                String::from(ATTACH) + SPACE + &*tuple_space_name.get_text()
+                                String::from(ATTACH)
+                                    + SPACE
+                                    + &*self.validate_tuple_name(tuple_space_name)
                             )
                         );
                     }
@@ -313,10 +417,10 @@ impl lifListener<'_> for Listener {
     }
 
     fn enter_assignation(&mut self, _ctx: &AssignationContext<'_>) {
-        if let Some(id_context) = _ctx.ID(){
-            if let Some(init_var_context) = _ctx.init_var(){
-                let value:Value = self.enter_init_var(init_var_context);
-                &self.symbol_table.insert(id_context.get_text(),value);
+        if let Some(id_context) = _ctx.ID() {
+            if let Some(init_var_context) = _ctx.init_var() {
+                let value: Value = self.enter_init_var(init_var_context);
+                let _ = &self.symbol_table.insert(id_context.get_text(), value);
             }
         }
     }
