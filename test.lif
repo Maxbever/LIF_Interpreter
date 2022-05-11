@@ -26,5 +26,8 @@ attach tsName2 attributes
 out ("test",45),("test2",78)
 var result2 =  read (_),(_)
 var result3 = in (_),(_)
-out result2
+var getTest = result2.get(1)
+var getTest2 = tuple4.get(1)
+var getTest3 = ("test",4).get(1)
+out (getTest,getTest2,getTest3)
 //delete attributes tsName2

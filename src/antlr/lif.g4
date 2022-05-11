@@ -28,7 +28,9 @@ in_instr: IN tuple(COMMA tuple)*;
 
 out: OUT tuple(COMMA tuple)*;
 
-assignation : VAR ID EQUAL ( init_var  |   read   |   in_instr);
+get_value: tuple DOT GET LPAR NUMBER RPAR;
+
+assignation : VAR ID EQUAL ( init_var  |   read   |   in_instr | get_value );
 
 attribut: STRING | ID ;
 

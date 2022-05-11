@@ -12,9 +12,9 @@ use crate::generated_file_antlr::lifparser::lifParserContextType;
 use crate::lifparser::{
     lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs,
     AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext,
-    CreateContextAttrs, DeleteContext, DeleteContextAttrs, In_instrContext, In_instrContextAttrs,
-    Init_varContextAll, Init_varContextAttrs, OutContext, OutContextAttrs, ReadContext,
-    ReadContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAll,
+    CreateContextAttrs, DeleteContext, DeleteContextAttrs, Get_valueContextAttrs, In_instrContext,
+    In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs, OutContext, OutContextAttrs,
+    ReadContext, ReadContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAll,
     Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs,
 };
 use antlr_rust::common_token_stream::CommonTokenStream;
@@ -274,6 +274,13 @@ impl Listener {
             return tuple_list + ")";
         }
     }
+
+    fn parse_tuple(&mut self, response: String) -> Value {
+        let lexer = lifLexer::new(InputStream::new(response.as_str()));
+        let token_source = CommonTokenStream::new(lexer);
+        let mut parser = lifParser::new(token_source);
+        return self.enter_init_var(parser.init_var().unwrap());
+    }
 }
 
 impl ParseTreeListener<'_, lifParserContextType> for Listener {}
@@ -427,14 +434,38 @@ impl lifListener<'_> for Listener {
                             TupleOperationContext::InContext(&in_context),
                             IN,
                         );
+                    } else {
+                        if let Some(get_context) = _ctx.get_value() {
+                            let index = get_context.NUMBER().unwrap().get_text().parse::<usize>();
+                            if let Some(tuple_context) = get_context.tuple() {
+                                let value;
+                                if let Some(variable) = tuple_context.ID() {
+                                    value = self.symbol_table.remove(&*variable.get_text()).unwrap();
+                                    self.symbol_table.insert(variable.get_text(),value.clone());
+                                } else {
+                                    value = self.parse_tuple(tuple_context.get_text());
+                                }
+                                match value {
+                                    Value::Tuple(tuple_value) => {
+                                        let mut vec_temp = tuple_value.clone();
+                                        let _ = &self.symbol_table.insert(
+                                            id_context.get_text(),
+                                            vec_temp.remove(index.unwrap()),
+                                        );
+                                    }
+                                    _ => {
+                                        panic!("Get must be on tuple")
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                if !response.contains("ERROR") {
-                    let lexer = lifLexer::new(InputStream::new(response.as_str()));
-                    let token_source = CommonTokenStream::new(lexer);
-                    let mut parser = lifParser::new(token_source);
-                    let value: Value = self.enter_init_var(parser.init_var().unwrap());
-                    let _ = &self.symbol_table.insert(id_context.get_text(), value);
+                if !response.contains("ERROR") && !response.is_empty() {
+                    let value = self.parse_tuple(response);
+                    let _ = self
+                        .symbol_table
+                        .insert(id_context.get_text(),value);
                 }
             }
         }

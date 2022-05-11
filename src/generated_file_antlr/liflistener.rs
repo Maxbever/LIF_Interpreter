@@ -105,6 +105,17 @@ fn enter_out(&mut self, _ctx: &OutContext<'input>) { }
 fn exit_out(&mut self, _ctx: &OutContext<'input>) { }
 
 /**
+ * Enter a parse tree produced by {@link lifParser#get_value}.
+ * @param ctx the parse tree
+ */
+fn enter_get_value(&mut self, _ctx: &Get_valueContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#get_value}.
+ * @param ctx the parse tree
+ */
+fn exit_get_value(&mut self, _ctx: &Get_valueContext<'input>) { }
+
+/**
  * Enter a parse tree produced by {@link lifParser#assignation}.
  * @param ctx the parse tree
  */
