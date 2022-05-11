@@ -8,7 +8,7 @@ var attributes3 = "att3"
 var attributes4 = "att4"
 var tsName = "test"
 var tsName2 = "test2"
-var tuple = ("test",45)
+var tuple = (tsName,45)
 var tuple2 = (_)
 var tuple3 = tuple
 var tuple4 = (4,5,5,(4))
@@ -18,12 +18,13 @@ create admin tsName2 attributes
 
 attach tsName attributes attributes3
 out tuple3,tuple4
-read (_,45),(_,78)
-in (_),(_)
-delete attributes4 tsName
+var result =  read (_,45),(_,78)
+var result1 = in (_),(_)
+//delete attributes4 tsName
 
 attach tsName2 attributes
 out ("test",45),("test2",78)
-read (_),(_)
-in (_),(_)
-delete attributes tsName2
+var result2 =  read (_),(_)
+var result3 = in (_),(_)
+out result2
+//delete attributes tsName2

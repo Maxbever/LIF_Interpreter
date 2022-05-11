@@ -52,7 +52,7 @@ impl Value {
                 for i in 0..value.len() {
                     let value_tuple = value.get(i).unwrap();
                     tuple_string += &*value_tuple.get_value();
-                    if (i != value.len()-1){
+                    if i != value.len() - 1 {
                         tuple_string.push(',')
                     }
                 }
@@ -91,7 +91,7 @@ impl Listener {
         }
     }
 
-    fn manage_tuple_operation(&mut self, _ctx: TupleOperationContext, operation: &str) {
+    fn manage_tuple_operation(&mut self, _ctx: TupleOperationContext, operation: &str) -> String {
         match _ctx {
             TupleOperationContext::OutContext(context) => {
                 if let Some(_) = context.tuple(0) {
@@ -105,11 +105,11 @@ impl Listener {
                                 let tuple_value = self.validate_tuple(tuple).clone();
                                 tuple_list.push_str(&*tuple_value);
                             }
-                            println!(
-                                "{}",
-                                server.send_message(String::from(operation) + SPACE + &*tuple_list)
-                            );
+                            let response =
+                                server.send_message(String::from(operation) + SPACE + &*tuple_list);
+                            println!("{}", response);
                             &self.server_list.insert(server_name, server);
+                            return response;
                         }
                     }
                 }
@@ -125,11 +125,11 @@ impl Listener {
                             for tuple in context.tuple_all() {
                                 tuple_list += &*self.validate_tuple(tuple);
                             }
-                            println!(
-                                "{}",
-                                server.send_message(String::from(operation) + SPACE + &*tuple_list)
-                            );
+                            let response =
+                                server.send_message(String::from(operation) + SPACE + &*tuple_list);
+                            println!("{}", response);
                             &self.server_list.insert(server_name, server);
+                            return response;
                         }
                     }
                 }
@@ -145,16 +145,17 @@ impl Listener {
                             for tuple in context.tuple_all() {
                                 tuple_list += &*self.validate_tuple(tuple);
                             }
-                            println!(
-                                "{}",
-                                server.send_message(String::from(operation) + SPACE + &*tuple_list)
-                            );
+                            let response =
+                                server.send_message(String::from(operation) + SPACE + &*tuple_list);
+                            println!("{}", response);
                             &self.server_list.insert(server_name, server);
+                            return response;
                         }
                     }
                 }
             }
-        };
+        }
+        panic!("Error in the tuple operation");
     }
 
     fn enter_init_var(&mut self, _ctx: Rc<Init_varContextAll>) -> Value {
@@ -264,8 +265,8 @@ impl Listener {
                     } else {
                         tuple_value += &*self.enter_init_var(tuple.init_var().unwrap()).get_value();
                     }
-                    if i != all_tuple.tuple_content_all().len()-1 {
-                        tuple_value.push_str(", ");
+                    if i != all_tuple.tuple_content_all().len() - 1 {
+                        tuple_value.push_str(",");
                     }
                     tuple_list += &*tuple_value;
                 }
@@ -404,14 +405,6 @@ impl lifListener<'_> for Listener {
         }
     }
 
-    fn enter_read(&mut self, _ctx: &ReadContext<'_>) {
-        self.manage_tuple_operation(TupleOperationContext::ReadContext(_ctx), READ);
-    }
-
-    fn enter_in_instr(&mut self, _ctx: &In_instrContext<'_>) {
-        self.manage_tuple_operation(TupleOperationContext::InContext(_ctx), IN);
-    }
-
     fn enter_out(&mut self, _ctx: &OutContext<'_>) {
         self.manage_tuple_operation(TupleOperationContext::OutContext(_ctx), OUT);
     }
@@ -421,6 +414,28 @@ impl lifListener<'_> for Listener {
             if let Some(init_var_context) = _ctx.init_var() {
                 let value: Value = self.enter_init_var(init_var_context);
                 let _ = &self.symbol_table.insert(id_context.get_text(), value);
+            } else {
+                let mut response: String = String::new();
+                if let Some(read_context) = _ctx.read() {
+                    response = self.manage_tuple_operation(
+                        TupleOperationContext::ReadContext(&read_context),
+                        READ,
+                    );
+                } else {
+                    if let Some(in_context) = _ctx.in_instr() {
+                        response = self.manage_tuple_operation(
+                            TupleOperationContext::InContext(&in_context),
+                            IN,
+                        );
+                    }
+                }
+                if !response.contains("ERROR") {
+                    let lexer = lifLexer::new(InputStream::new(response.as_str()));
+                    let token_source = CommonTokenStream::new(lexer);
+                    let mut parser = lifParser::new(token_source);
+                    let value: Value = self.enter_init_var(parser.init_var().unwrap());
+                    let _ = &self.symbol_table.insert(id_context.get_text(), value);
+                }
             }
         }
     }

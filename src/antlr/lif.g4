@@ -12,8 +12,6 @@ instruction:    connect
                 |   delete
                 |   attach
                 |   out
-                |   read
-                |   in_instr
                 |   assignation;
 
 connect : CONNECT protocol DOUBLEDOT ip_address DOUBLEDOT port;
@@ -30,7 +28,7 @@ in_instr: IN tuple(COMMA tuple)*;
 
 out: OUT tuple(COMMA tuple)*;
 
-assignation : VAR ID EQUAL init_var;
+assignation : VAR ID EQUAL ( init_var  |   read   |   in_instr);
 
 attribut: STRING | ID ;
 
