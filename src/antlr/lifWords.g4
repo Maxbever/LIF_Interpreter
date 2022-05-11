@@ -16,6 +16,7 @@ TCP : 'tcp';
 UDP : 'udp';
 VAR : 'var';
 GET : 'get';
+LEN : 'len';
 
 // Char
 LPAR: '(';

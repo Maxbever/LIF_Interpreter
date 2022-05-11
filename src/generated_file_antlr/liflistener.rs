@@ -105,15 +105,26 @@ fn enter_out(&mut self, _ctx: &OutContext<'input>) { }
 fn exit_out(&mut self, _ctx: &OutContext<'input>) { }
 
 /**
- * Enter a parse tree produced by {@link lifParser#get_value}.
+ * Enter a parse tree produced by {@link lifParser#get_function}.
  * @param ctx the parse tree
  */
-fn enter_get_value(&mut self, _ctx: &Get_valueContext<'input>) { }
+fn enter_get_function(&mut self, _ctx: &Get_functionContext<'input>) { }
 /**
- * Exit a parse tree produced by {@link lifParser#get_value}.
+ * Exit a parse tree produced by {@link lifParser#get_function}.
  * @param ctx the parse tree
  */
-fn exit_get_value(&mut self, _ctx: &Get_valueContext<'input>) { }
+fn exit_get_function(&mut self, _ctx: &Get_functionContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#len_function}.
+ * @param ctx the parse tree
+ */
+fn enter_len_function(&mut self, _ctx: &Len_functionContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#len_function}.
+ * @param ctx the parse tree
+ */
+fn exit_len_function(&mut self, _ctx: &Len_functionContext<'input>) { }
 
 /**
  * Enter a parse tree produced by {@link lifParser#assignation}.

@@ -3,20 +3,13 @@
 extern crate core;
 extern crate lazy_static;
 
-use crate::constant::{ATTACH, CREATE, DELETE, IN, OUT, READ, SPACE};
+use crate::constant::{ATTACH, CREATE, DELETE, GET_FUNCTION, IN, LEN_FUNCTION, OUT, READ, SPACE};
 use crate::generated_file_antlr::liflexer::lifLexer;
 use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
 use crate::generated_file_antlr::lifparser::lifParser;
 use crate::generated_file_antlr::lifparser::lifParserContextType;
-use crate::lifparser::{
-    lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs,
-    AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext,
-    CreateContextAttrs, DeleteContext, DeleteContextAttrs, Get_valueContextAttrs, In_instrContext,
-    In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs, OutContext, OutContextAttrs,
-    ReadContext, ReadContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAll,
-    Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs,
-};
+use crate::lifparser::{lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs, AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAll, Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, Get_functionContextAttrs, Len_functionContextAttrs};
 use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
 use antlr_rust::InputStream;
@@ -281,6 +274,36 @@ impl Listener {
         let mut parser = lifParser::new(token_source);
         return self.enter_init_var(parser.init_var().unwrap());
     }
+
+    fn function_on_tuple(&mut self, tuple_context: Rc<TupleContextAll>, function : &str, index: Option<usize>, id_context: String){
+            let value;
+            if let Some(variable) = tuple_context.ID() {
+                value = self.symbol_table.remove(&*variable.get_text()).unwrap();
+                self.symbol_table.insert(variable.get_text(),value.clone());
+            } else {
+                value = self.parse_tuple(tuple_context.get_text());
+            }
+            match value {
+                Value::Tuple(tuple_value) => {
+                    let mut vec_temp = tuple_value.clone();
+                    if function == LEN_FUNCTION{
+                        let _ = &self.symbol_table.insert(
+                            id_context,
+                            Value::Number(vec_temp.len() as u32),
+                        );
+                    }else {
+                        let _ = &self.symbol_table.insert(
+                            id_context,
+                            vec_temp.remove(index.unwrap()),
+                        );
+                    }
+                }
+                _ => {
+                    panic!("Get must be on tuple")
+                }
+            }
+        }
+
 }
 
 impl ParseTreeListener<'_, lifParserContextType> for Listener {}
@@ -435,27 +458,15 @@ impl lifListener<'_> for Listener {
                             IN,
                         );
                     } else {
-                        if let Some(get_context) = _ctx.get_value() {
-                            let index = get_context.NUMBER().unwrap().get_text().parse::<usize>();
+                        if let Some(get_context) = _ctx.get_function() {
+                            let index = get_context.NUMBER().unwrap().get_text().parse::<usize>().unwrap();
                             if let Some(tuple_context) = get_context.tuple() {
-                                let value;
-                                if let Some(variable) = tuple_context.ID() {
-                                    value = self.symbol_table.remove(&*variable.get_text()).unwrap();
-                                    self.symbol_table.insert(variable.get_text(),value.clone());
-                                } else {
-                                    value = self.parse_tuple(tuple_context.get_text());
-                                }
-                                match value {
-                                    Value::Tuple(tuple_value) => {
-                                        let mut vec_temp = tuple_value.clone();
-                                        let _ = &self.symbol_table.insert(
-                                            id_context.get_text(),
-                                            vec_temp.remove(index.unwrap()),
-                                        );
-                                    }
-                                    _ => {
-                                        panic!("Get must be on tuple")
-                                    }
+                                self.function_on_tuple(tuple_context, GET_FUNCTION, Some(index), id_context.get_text());
+                            }
+                        }else{
+                            if let Some(len_context) = _ctx.len_function(){
+                                if let Some(tuple_context) = len_context.tuple() {
+                                    self.function_on_tuple(tuple_context, LEN_FUNCTION, None, id_context.get_text());
                                 }
                             }
                         }

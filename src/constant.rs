@@ -9,3 +9,5 @@ pub const STOP_SERVER: &str = "STOP";
 pub const TIMEOUT: u64 = 1;
 pub const TCP: &str = "tcp";
 pub const UDP: &str = "udp";
+pub const LEN_FUNCTION: &str = "len_function";
+pub const GET_FUNCTION: &str = "get_function";
