@@ -1,5 +1,5 @@
-//connect tcp:127.0.0.1:9000
-connect udp:127.0.0.1:9001
+connect tcp:127.0.0.1:9000
+//connect udp:127.0.0.1:9001
 
 var attributes = "att1"
 var admin = "admin"
@@ -52,8 +52,24 @@ var mult2 = lenTest*1
 var mult3 = mult2 * mult
 out (mult,mult2,mult3)
 
-var div = 0.7
+var div = 4
 var div2 = lenTest/1
 var div3 = div / 8
 out (div,div2,div3)
+
+out ("temp", 21),("temp", 23),("temp", 29),("temp", 25),("temp", 20)
+
+var data = in ("temp", _),("temp", _), ("temp", _), ("temp", _), ("temp", _)
+
+var dataSize = data.len()
+var sum = 0
+
+for i = 0 to (dataSize) {
+    var dataTemp = data.get(i)
+    var temp = dataTemp.get(1)
+    var sum = sum + temp
+}
+var mean = sum / dataSize
+out (mean)
+
 //delete attributes tsName2

@@ -12,6 +12,7 @@ instruction:    connect
                 |   delete
                 |   attach
                 |   out
+                |   for_instr
                 |   assignation;
 
 connect : CONNECT protocol DOUBLEDOT ip_address DOUBLEDOT port;
@@ -28,6 +29,8 @@ in_instr: IN tuple(COMMA tuple)*;
 
 out: OUT tuple(COMMA tuple)*;
 
+for_instr : FOR ID EQUAL right_expr TO LPAR right_expr RPAR LEFT_BRACE instruction+ RIGHT_BRACE;
+
 operation :  get_function
             | len_function
             | (ID | NUMBER) PLUS right_expr
@@ -35,7 +38,7 @@ operation :  get_function
             | (ID | NUMBER) KLEENE right_expr
             | (ID | NUMBER) SLASH right_expr;
 
-get_function: tuple DOT GET LPAR NUMBER RPAR;
+get_function: tuple DOT GET LPAR right_expr RPAR;
 
 len_function: tuple DOT LEN LPAR RPAR;
 

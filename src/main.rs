@@ -9,15 +9,15 @@ use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
 use crate::generated_file_antlr::lifparser::lifParser;
 use crate::generated_file_antlr::lifparser::lifParserContextType;
-use crate::lifparser::{lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs, AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAll, Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, Get_functionContextAttrs, Len_functionContextAttrs, OperationContextAttrs, OperationContextAll, Right_exprContextAll, Right_exprContextAttrs};
+use crate::lifparser::{lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs, AttributContext, AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, For_instrContext, For_instrContextAttrs, Get_functionContext, Get_functionContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContext, Init_varContextAll, Init_varContextAttrs, InstructionContext, InstructionContextAttrs, Ip_addressContext, Len_functionContext, Len_functionContextAttrs, OperationContext, OperationContextAll, OperationContextAttrs, OutContext, OutContextAttrs, PortContext, ProtocolContext, ReadContext, ReadContextAttrs, Right_exprContext, Right_exprContextAll, Right_exprContextAttrs, RootContext, TupleContext, TupleContextAll, TupleContextAttrs, Tuple_contentContext, Tuple_contentContextAll, Tuple_contentContextAttrs, Tuple_space_nameContext, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, RootContextAttrs};
 use antlr_rust::common_token_stream::CommonTokenStream;
+use antlr_rust::rule_context::CustomRuleContext;
 use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
 use antlr_rust::InputStream;
 use server::Server;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::{env, fs};
-use antlr_rust::rule_context::CustomRuleContext;
 
 mod constant;
 mod generated_file_antlr;
@@ -30,7 +30,7 @@ struct Listener {
 
 enum Value {
     String(String),
-    Number(i64),
+    Number(f32),
     Tuple(Vec<Value>),
     Char(char),
     ID(Box<Value>),
@@ -159,7 +159,7 @@ impl Listener {
             string.remove(0);
             return Value::String(string);
         } else if let Some(number_context) = _ctx.NUMBER() {
-            return Value::Number(number_context.get_text().parse::<i64>().unwrap());
+            return Value::Number(number_context.get_text().parse::<f32>().unwrap());
         } else if let Some(tuple_context) = _ctx.tuple() {
             return if let Some(id_context) = tuple_context.ID() {
                 Value::Tuple(vec![self.add_variable_in_variable(id_context)])
@@ -276,87 +276,97 @@ impl Listener {
         return self.enter_init_var(parser.init_var().unwrap());
     }
 
-    fn function_on_tuple(&mut self, tuple_context: Rc<TupleContextAll>, function : &str, index: Option<usize>, id_context: String){
-            let value;
-            if let Some(variable) = tuple_context.ID() {
-                value = self.symbol_table.remove(&*variable.get_text()).unwrap();
-                self.symbol_table.insert(variable.get_text(),value.clone());
-            } else {
-                value = self.parse_tuple(tuple_context.get_text());
+    fn function_on_tuple(
+        &mut self,
+        tuple_context: Rc<TupleContextAll>,
+        function: &str,
+        index: Option<usize>,
+        id_context: String,
+    ) {
+        let value;
+        if let Some(variable) = tuple_context.ID() {
+            value = self.symbol_table.remove(&*variable.get_text()).unwrap();
+            self.symbol_table.insert(variable.get_text(), value.clone());
+        } else {
+            value = self.parse_tuple(tuple_context.get_text());
+        }
+        match value {
+            Value::Tuple(tuple_value) => {
+                let mut vec_temp = tuple_value.clone();
+                if function == LEN_FUNCTION {
+                    let _ = &self
+                        .symbol_table
+                        .insert(id_context, Value::Number(vec_temp.len() as f32));
+                } else {
+                    let _ = &self
+                        .symbol_table
+                        .insert(id_context, vec_temp.remove(index.unwrap()));
+                }
             }
-            match value {
-                Value::Tuple(tuple_value) => {
-                    let mut vec_temp = tuple_value.clone();
-                    if function == LEN_FUNCTION{
-                        let _ = &self.symbol_table.insert(
-                            id_context,
-                            Value::Number(vec_temp.len() as i64),
-                        );
-                    }else {
-                        let _ = &self.symbol_table.insert(
-                            id_context,
-                            vec_temp.remove(index.unwrap()),
-                        );
-                    }
-                }
-                _ => {
-                    panic!("Get must be on tuple")
-                }
+            _ => {
+                panic!("Get must be on tuple")
             }
         }
+    }
 
-    fn manage_operation(&mut self, operation_context: Rc<OperationContextAll>, id_context: String){
+    fn manage_operation(&mut self, operation_context: Rc<OperationContextAll>, id_context: String) {
         if let Some(get_context) = operation_context.get_function() {
-            let index = get_context.NUMBER().unwrap().get_text().parse::<usize>().unwrap();
-            if let Some(tuple_context) = get_context.tuple() {
-                self.function_on_tuple(tuple_context, GET_FUNCTION, Some(index), id_context);
+            if let Some(right_exp) = get_context.right_expr(){
+                let index = self.manage_right_expr(right_exp);
+                if let Some(tuple_context) = get_context.tuple() {
+                    self.function_on_tuple(tuple_context, GET_FUNCTION, Some(index as usize), id_context);
+                }
             }
-        }else{
-            if let Some(len_context) = operation_context.len_function(){
+        } else {
+            if let Some(len_context) = operation_context.len_function() {
                 if let Some(tuple_context) = len_context.tuple() {
                     self.function_on_tuple(tuple_context, LEN_FUNCTION, None, id_context);
                 }
-            }else if let Some(_) = operation_context.PLUS() {
+            } else if let Some(_) = operation_context.PLUS() {
                 let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
                 let left_expr = &self.manage_left_expr(operation_context);
-                self.symbol_table.insert(id_context , Value::Number(left_expr + right_expr));
-            }else if let Some(_) = operation_context.MINUS() {
+                self.symbol_table
+                    .insert(id_context, Value::Number(left_expr + right_expr));
+            } else if let Some(_) = operation_context.MINUS() {
                 let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
                 let left_expr = &self.manage_left_expr(operation_context);
-                self.symbol_table.insert(id_context , Value::Number(left_expr - right_expr));
-            }else if let Some(_) = operation_context.KLEENE() {
+                self.symbol_table
+                    .insert(id_context, Value::Number(left_expr - right_expr));
+            } else if let Some(_) = operation_context.KLEENE() {
                 let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
                 let left_expr = &self.manage_left_expr(operation_context);
-                self.symbol_table.insert(id_context , Value::Number(left_expr * right_expr));
-            }else if let Some(_) = operation_context.SLASH() {
+                self.symbol_table
+                    .insert(id_context, Value::Number(left_expr * right_expr));
+            } else if let Some(_) = operation_context.SLASH() {
                 let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
                 let left_expr = &self.manage_left_expr(operation_context);
-                self.symbol_table.insert(id_context , Value::Number(left_expr / right_expr));
+                self.symbol_table
+                    .insert(id_context, Value::Number(left_expr / right_expr));
             }
         }
     }
 
-    fn manage_right_expr(&self, right_context: Rc<Right_exprContextAll>) -> i64 {
+    fn manage_right_expr(&self, right_context: Rc<Right_exprContextAll>) -> f32 {
         if let Some(id_context) = right_context.ID() {
-            let val =  &self.manage_var_expr_content(id_context);
+            let val = &self.manage_var_expr_content(id_context);
             return val.clone();
-        }else if let Some(id_context) = right_context.NUMBER() {
-            return id_context.get_text().parse::<i64>().unwrap();
+        } else if let Some(id_context) = right_context.NUMBER() {
+            return id_context.get_text().parse::<f32>().unwrap();
         }
         panic!("Right Expression invalid")
     }
 
-    fn manage_left_expr(&self, operation_context: Rc<OperationContextAll>) -> i64 {
+    fn manage_left_expr(&self, operation_context: Rc<OperationContextAll>) -> f32 {
         if let Some(id_context) = operation_context.ID() {
-            let val =  &self.manage_var_expr_content(id_context);
+            let val = &self.manage_var_expr_content(id_context);
             return val.clone();
-        }else if let Some(id_context) = operation_context.NUMBER() {
-            return id_context.get_text().parse::<i64>().unwrap();
+        } else if let Some(id_context) = operation_context.NUMBER() {
+            return id_context.get_text().parse::<f32>().unwrap();
         }
         panic!("Right Expression invalid")
     }
 
-    fn manage_var_expr_content(&self, id_context: Rc<TerminalNode<lifParserContextType>>) -> i64 {
+    fn manage_var_expr_content(&self, id_context: Rc<TerminalNode<lifParserContextType>>) -> f32 {
         let id_variable = id_context.get_text();
         match &self.symbol_table.get(&id_variable) {
             None => {
@@ -367,11 +377,9 @@ impl Listener {
                     return number.clone();
                 }
                 Value::Tuple(_) | Value::String(_) | Value::Char(_) => {
-                    panic!("Value not available for an attribute")
+                    panic!("Value not available for an number operation")
                 }
-                Value::ID(id_value)  => {
-                    return id_value.get_value().parse::<i64>().unwrap()
-                }
+                Value::ID(id_value) => return id_value.get_value().parse::<f32>().unwrap(),
             },
         }
     }
@@ -380,6 +388,26 @@ impl Listener {
 impl ParseTreeListener<'_, lifParserContextType> for Listener {}
 
 impl lifListener<'_> for Listener {
+    fn enter_instruction(&mut self, _ctx: &InstructionContext<'_>) {
+        if let Some(connect_ctx) = _ctx.connect() {
+            self.enter_connect(&connect_ctx)
+        } else if let Some(connect_ctx) = _ctx.connect() {
+            self.enter_connect(&connect_ctx)
+        } else if let Some(create_ctx) = _ctx.create() {
+            self.enter_create(&create_ctx)
+        } else if let Some(delete_ctx) = _ctx.delete() {
+            self.enter_delete(&delete_ctx)
+        } else if let Some(attach_ctx) = _ctx.attach() {
+            self.enter_attach(&attach_ctx)
+        } else if let Some(out_ctx) = _ctx.out() {
+            self.enter_out(&out_ctx)
+        } else if let Some(for_context) = _ctx.for_instr() {
+            self.enter_for_instr(&for_context)
+        } else if let Some(assignation_ctx) = _ctx.assignation() {
+            self.enter_assignation(&assignation_ctx)
+        }
+    }
+
     fn enter_connect(&mut self, _ctx: &ConnectContext<'_>) {
         if let Some(protocol) = _ctx.protocol() {
             if let Some(ip_address) = _ctx.ip_address() {
@@ -529,18 +557,36 @@ impl lifListener<'_> for Listener {
                             IN,
                         );
                     } else {
-                        if let Some(operation_context)= _ctx.operation(){
+                        if let Some(operation_context) = _ctx.operation() {
                             self.manage_operation(operation_context, id_context.get_text());
                         }
                     }
                 }
                 if !response.contains("ERROR") && !response.is_empty() {
                     let value = self.parse_tuple(response);
-                    let _ = self
-                        .symbol_table
-                        .insert(id_context.get_text(),value);
+                    let _ = self.symbol_table.insert(id_context.get_text(), value);
                 }
             }
+        }
+    }
+
+    fn enter_for_instr(&mut self, _ctx: &For_instrContext<'_>) {
+        let mut iterator = self.manage_right_expr(_ctx.right_expr(0).unwrap()) as i64;
+        let max = self.manage_right_expr(_ctx.right_expr(1).unwrap()) as i64;
+        self.symbol_table.insert(
+            _ctx.ID().unwrap().get_text(),
+            Value::Number(iterator as f32),
+        );
+
+        while iterator < max {
+            for instr in _ctx.instruction_all() {
+                self.enter_instruction(&instr);
+            }
+            iterator += 1;
+            self.symbol_table.insert(
+                _ctx.ID().unwrap().get_text(),
+                Value::Number(iterator as f32),
+            );
         }
     }
 }
@@ -555,7 +601,11 @@ fn main() {
             let token_source = CommonTokenStream::new(lexer);
             let mut parser = lifParser::new(token_source);
             println!("Start parsing lif");
-            lifTreeWalker::walk(Box::new(Listener::new()), &*parser.root().unwrap());
+            //lifTreeWalker::walk(Box::new(Listener::new()), &*parser.root().unwrap());
+            let mut listener = Listener::new();
+            for instr in parser.root().unwrap().instruction_all(){
+                listener.enter_instruction(&instr);
+            }
         }
         Err(error) => {
             println!("{}", error)

@@ -17,6 +17,8 @@ UDP : 'udp';
 VAR : 'var';
 GET : 'get';
 LEN : 'len';
+FOR : 'for';
+TO : 'to';
 
 // Char
 LPAR: '(';
@@ -36,6 +38,8 @@ WILDCARD: '_';
 EQUAL : '=';
 PLUS: '+';
 MINUS: '-';
+RIGHT_BRACE : '}';
+LEFT_BRACE : '{';
 
 ID: LETTER (LETTER | DIGIT)* ;
 fragment LETTER: 'A'..'Z' | 'a'..'z' ;
