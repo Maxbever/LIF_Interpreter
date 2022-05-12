@@ -11,3 +11,8 @@ pub const TCP: &str = "tcp";
 pub const UDP: &str = "udp";
 pub const LEN_FUNCTION: &str = "len_function";
 pub const GET_FUNCTION: &str = "get_function";
+pub const PLUS: &str = "plus";
+pub const MINUS: &str = "minus";
+pub const KLEENE: &str = "kleene";
+pub const SLASH: &str = "slash";
+

@@ -34,6 +34,8 @@ SEMICOLON : ';';
 KLEENE : '*';
 WILDCARD: '_';
 EQUAL : '=';
+PLUS: '+';
+MINUS: '-';
 
 ID: LETTER (LETTER | DIGIT)* ;
 fragment LETTER: 'A'..'Z' | 'a'..'z' ;

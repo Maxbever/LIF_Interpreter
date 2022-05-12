@@ -9,7 +9,7 @@ use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
 use crate::generated_file_antlr::lifparser::lifParser;
 use crate::generated_file_antlr::lifparser::lifParserContextType;
-use crate::lifparser::{lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs, AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAll, Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, Get_functionContextAttrs, Len_functionContextAttrs};
+use crate::lifparser::{lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs, AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAll, Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, Get_functionContextAttrs, Len_functionContextAttrs, OperationContextAttrs, OperationContextAll, Right_exprContextAll, Right_exprContextAttrs};
 use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
 use antlr_rust::InputStream;
@@ -17,6 +17,7 @@ use server::Server;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::{env, fs};
+use antlr_rust::rule_context::CustomRuleContext;
 
 mod constant;
 mod generated_file_antlr;
@@ -29,7 +30,7 @@ struct Listener {
 
 enum Value {
     String(String),
-    Number(u32),
+    Number(i64),
     Tuple(Vec<Value>),
     Char(char),
     ID(Box<Value>),
@@ -158,7 +159,7 @@ impl Listener {
             string.remove(0);
             return Value::String(string);
         } else if let Some(number_context) = _ctx.NUMBER() {
-            return Value::Number(number_context.get_text().parse::<u32>().unwrap());
+            return Value::Number(number_context.get_text().parse::<i64>().unwrap());
         } else if let Some(tuple_context) = _ctx.tuple() {
             return if let Some(id_context) = tuple_context.ID() {
                 Value::Tuple(vec![self.add_variable_in_variable(id_context)])
@@ -289,7 +290,7 @@ impl Listener {
                     if function == LEN_FUNCTION{
                         let _ = &self.symbol_table.insert(
                             id_context,
-                            Value::Number(vec_temp.len() as u32),
+                            Value::Number(vec_temp.len() as i64),
                         );
                     }else {
                         let _ = &self.symbol_table.insert(
@@ -304,6 +305,76 @@ impl Listener {
             }
         }
 
+    fn manage_operation(&mut self, operation_context: Rc<OperationContextAll>, id_context: String){
+        if let Some(get_context) = operation_context.get_function() {
+            let index = get_context.NUMBER().unwrap().get_text().parse::<usize>().unwrap();
+            if let Some(tuple_context) = get_context.tuple() {
+                self.function_on_tuple(tuple_context, GET_FUNCTION, Some(index), id_context);
+            }
+        }else{
+            if let Some(len_context) = operation_context.len_function(){
+                if let Some(tuple_context) = len_context.tuple() {
+                    self.function_on_tuple(tuple_context, LEN_FUNCTION, None, id_context);
+                }
+            }else if let Some(_) = operation_context.PLUS() {
+                let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
+                let left_expr = &self.manage_left_expr(operation_context);
+                self.symbol_table.insert(id_context , Value::Number(left_expr + right_expr));
+            }else if let Some(_) = operation_context.MINUS() {
+                let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
+                let left_expr = &self.manage_left_expr(operation_context);
+                self.symbol_table.insert(id_context , Value::Number(left_expr - right_expr));
+            }else if let Some(_) = operation_context.KLEENE() {
+                let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
+                let left_expr = &self.manage_left_expr(operation_context);
+                self.symbol_table.insert(id_context , Value::Number(left_expr * right_expr));
+            }else if let Some(_) = operation_context.SLASH() {
+                let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
+                let left_expr = &self.manage_left_expr(operation_context);
+                self.symbol_table.insert(id_context , Value::Number(left_expr / right_expr));
+            }
+        }
+    }
+
+    fn manage_right_expr(&self, right_context: Rc<Right_exprContextAll>) -> i64 {
+        if let Some(id_context) = right_context.ID() {
+            let val =  &self.manage_var_expr_content(id_context);
+            return val.clone();
+        }else if let Some(id_context) = right_context.NUMBER() {
+            return id_context.get_text().parse::<i64>().unwrap();
+        }
+        panic!("Right Expression invalid")
+    }
+
+    fn manage_left_expr(&self, operation_context: Rc<OperationContextAll>) -> i64 {
+        if let Some(id_context) = operation_context.ID() {
+            let val =  &self.manage_var_expr_content(id_context);
+            return val.clone();
+        }else if let Some(id_context) = operation_context.NUMBER() {
+            return id_context.get_text().parse::<i64>().unwrap();
+        }
+        panic!("Right Expression invalid")
+    }
+
+    fn manage_var_expr_content(&self, id_context: Rc<TerminalNode<lifParserContextType>>) -> i64 {
+        let id_variable = id_context.get_text();
+        match &self.symbol_table.get(&id_variable) {
+            None => {
+                panic!("Variable {} not found", &id_variable)
+            }
+            Some(variable) => match variable {
+                Value::Number(number) => {
+                    return number.clone();
+                }
+                Value::Tuple(_) | Value::String(_) | Value::Char(_) => {
+                    panic!("Value not available for an attribute")
+                }
+                Value::ID(id_value)  => {
+                    return id_value.get_value().parse::<i64>().unwrap()
+                }
+            },
+        }
+    }
 }
 
 impl ParseTreeListener<'_, lifParserContextType> for Listener {}
@@ -458,17 +529,8 @@ impl lifListener<'_> for Listener {
                             IN,
                         );
                     } else {
-                        if let Some(get_context) = _ctx.get_function() {
-                            let index = get_context.NUMBER().unwrap().get_text().parse::<usize>().unwrap();
-                            if let Some(tuple_context) = get_context.tuple() {
-                                self.function_on_tuple(tuple_context, GET_FUNCTION, Some(index), id_context.get_text());
-                            }
-                        }else{
-                            if let Some(len_context) = _ctx.len_function(){
-                                if let Some(tuple_context) = len_context.tuple() {
-                                    self.function_on_tuple(tuple_context, LEN_FUNCTION, None, id_context.get_text());
-                                }
-                            }
+                        if let Some(operation_context)= _ctx.operation(){
+                            self.manage_operation(operation_context, id_context.get_text());
                         }
                     }
                 }

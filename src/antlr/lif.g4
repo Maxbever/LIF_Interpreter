@@ -28,13 +28,22 @@ in_instr: IN tuple(COMMA tuple)*;
 
 out: OUT tuple(COMMA tuple)*;
 
+operation :  get_function
+            | len_function
+            | (ID | NUMBER) PLUS right_expr
+            | (ID | NUMBER) MINUS right_expr
+            | (ID | NUMBER) KLEENE right_expr
+            | (ID | NUMBER) SLASH right_expr;
+
 get_function: tuple DOT GET LPAR NUMBER RPAR;
 
 len_function: tuple DOT LEN LPAR RPAR;
 
-assignation : VAR ID EQUAL ( init_var  |   read   |   in_instr | get_function | len_function );
+assignation : VAR ID EQUAL ( init_var  |   read   |   in_instr | operation);
 
 attribut: STRING | ID ;
+
+right_expr : ID | NUMBER;
 
 tuple : LPAR (tuple_content (COMMA tuple_content)*) RPAR | ID;
 tuple_content : init_var | WILDCARD ;

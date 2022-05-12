@@ -105,6 +105,17 @@ fn enter_out(&mut self, _ctx: &OutContext<'input>) { }
 fn exit_out(&mut self, _ctx: &OutContext<'input>) { }
 
 /**
+ * Enter a parse tree produced by {@link lifParser#operation}.
+ * @param ctx the parse tree
+ */
+fn enter_operation(&mut self, _ctx: &OperationContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#operation}.
+ * @param ctx the parse tree
+ */
+fn exit_operation(&mut self, _ctx: &OperationContext<'input>) { }
+
+/**
  * Enter a parse tree produced by {@link lifParser#get_function}.
  * @param ctx the parse tree
  */
@@ -147,6 +158,17 @@ fn enter_attribut(&mut self, _ctx: &AttributContext<'input>) { }
  * @param ctx the parse tree
  */
 fn exit_attribut(&mut self, _ctx: &AttributContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#right_expr}.
+ * @param ctx the parse tree
+ */
+fn enter_right_expr(&mut self, _ctx: &Right_exprContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#right_expr}.
+ * @param ctx the parse tree
+ */
+fn exit_right_expr(&mut self, _ctx: &Right_exprContext<'input>) { }
 
 /**
  * Enter a parse tree produced by {@link lifParser#tuple}.

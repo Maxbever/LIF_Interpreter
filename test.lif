@@ -36,4 +36,24 @@ var lenTest = result2.len()
 var lenTest2 = tuple4.len()
 var lenTest3 = ("test",4).len()
 out (lenTest,lenTest2,lenTest3)
+
+var add = 1+1
+var add2 = lenTest+1
+var add3 = add2 + add
+out (add,add2,add3)
+
+var minus = 1-1
+var minus2 = lenTest-1
+var minus3 = minus - minus2
+out (minus,minus2,minus3)
+
+var mult = 1*1
+var mult2 = lenTest*1
+var mult3 = mult2 * mult
+out (mult,mult2,mult3)
+
+var div = 0.7
+var div2 = lenTest/1
+var div3 = div / 8
+out (div,div2,div3)
 //delete attributes tsName2
