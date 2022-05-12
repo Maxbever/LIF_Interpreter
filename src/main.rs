@@ -318,21 +318,21 @@ impl Listener {
                     return self.function_on_tuple(tuple_context, LEN_FUNCTION, None);
                 }
             } else if let Some(_) = operation_context.PLUS() {
-                let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
-                let left_expr = &self.manage_left_expr(operation_context);
-                return Value::Number(left_expr + right_expr);
+                let right_expr = self.manage_operation(operation_context.operation(1).unwrap());
+                let left_expr = self.manage_operation(operation_context.operation(0).unwrap());
+                return Value::Number((Listener::check_value_number(left_expr) + Listener::check_value_number(right_expr)) as f32);
             } else if let Some(_) = operation_context.MINUS() {
-                let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
-                let left_expr = &self.manage_left_expr(operation_context);
-               return Value::Number(left_expr - right_expr);
+                let right_expr = self.manage_operation(operation_context.operation(1).unwrap());
+                let left_expr = self.manage_operation(operation_context.operation(0).unwrap());
+                return Value::Number(Listener::check_value_number(left_expr) as f32 - Listener::check_value_number(right_expr) as f32);
             } else if let Some(_) = operation_context.KLEENE() {
-                let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
-                let left_expr = &self.manage_left_expr(operation_context);
-                return Value::Number(left_expr * right_expr);
+                let right_expr = self.manage_operation(operation_context.operation(1).unwrap());
+                let left_expr = self.manage_operation(operation_context.operation(0).unwrap());
+                return Value::Number((Listener::check_value_number(left_expr) * Listener::check_value_number(right_expr)) as f32);
             } else if let Some(_) = operation_context.SLASH() {
-                let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
-                let left_expr = &self.manage_left_expr(operation_context);
-                return Value::Number(left_expr / right_expr);
+                let right_expr = self.manage_operation(operation_context.operation(1).unwrap());
+                let left_expr = self.manage_operation(operation_context.operation(0).unwrap());
+                return Value::Number(Listener::check_value_number(left_expr) as f32 / Listener::check_value_number(right_expr)as f32);
             } else if let Some(right_expr) = operation_context.right_expr() {
                 return Value::Number(*&self.manage_right_expr(right_expr));
             }
@@ -345,16 +345,6 @@ impl Listener {
             let val = &self.manage_var_expr_content(id_context);
             return val.clone();
         } else if let Some(id_context) = right_context.NUMBER() {
-            return id_context.get_text().parse::<f32>().unwrap();
-        }
-        panic!("Right Expression invalid")
-    }
-
-    fn manage_left_expr(&self, operation_context: Rc<OperationContextAll>) -> f32 {
-        if let Some(id_context) = operation_context.ID() {
-            let val = &self.manage_var_expr_content(id_context);
-            return val.clone();
-        } else if let Some(id_context) = operation_context.NUMBER() {
             return id_context.get_text().parse::<f32>().unwrap();
         }
         panic!("Right Expression invalid")

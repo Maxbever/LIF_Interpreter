@@ -34,10 +34,10 @@ for_instr : FOR ID EQUAL operation TO LPAR operation RPAR LEFT_BRACE instruction
 operation :   get_function
             | len_function
             | right_expr
-            | (ID | NUMBER) PLUS right_expr
-            | (ID | NUMBER) MINUS right_expr
-            | (ID | NUMBER) KLEENE right_expr
-            | (ID | NUMBER) SLASH right_expr;
+            | operation PLUS operation
+            | operation MINUS operation
+            | operation KLEENE operation
+            | operation SLASH operation;
 
 get_function: tuple DOT GET LPAR right_expr RPAR;
 
