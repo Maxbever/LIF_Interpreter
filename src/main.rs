@@ -281,8 +281,7 @@ impl Listener {
         tuple_context: Rc<TupleContextAll>,
         function: &str,
         index: Option<usize>,
-        id_context: String,
-    ) {
+    ) -> Value {
         let value;
         if let Some(variable) = tuple_context.ID() {
             value = self.symbol_table.remove(&*variable.get_text()).unwrap();
@@ -293,14 +292,10 @@ impl Listener {
         match value {
             Value::Tuple(tuple_value) => {
                 let mut vec_temp = tuple_value.clone();
-                if function == LEN_FUNCTION {
-                    let _ = &self
-                        .symbol_table
-                        .insert(id_context, Value::Number(vec_temp.len() as f32));
+                return if function == LEN_FUNCTION {
+                    Value::Number(vec_temp.len() as f32)
                 } else {
-                    let _ = &self
-                        .symbol_table
-                        .insert(id_context, vec_temp.remove(index.unwrap()));
+                    vec_temp.remove(index.unwrap())
                 }
             }
             _ => {
@@ -309,41 +304,40 @@ impl Listener {
         }
     }
 
-    fn manage_operation(&mut self, operation_context: Rc<OperationContextAll>, id_context: String) {
+    fn manage_operation(&mut self, operation_context: Rc<OperationContextAll>) -> Value {
         if let Some(get_context) = operation_context.get_function() {
             if let Some(right_exp) = get_context.right_expr(){
                 let index = self.manage_right_expr(right_exp);
                 if let Some(tuple_context) = get_context.tuple() {
-                    self.function_on_tuple(tuple_context, GET_FUNCTION, Some(index as usize), id_context);
+                    return self.function_on_tuple(tuple_context, GET_FUNCTION, Some(index as usize));
                 }
             }
         } else {
             if let Some(len_context) = operation_context.len_function() {
                 if let Some(tuple_context) = len_context.tuple() {
-                    self.function_on_tuple(tuple_context, LEN_FUNCTION, None, id_context);
+                    return self.function_on_tuple(tuple_context, LEN_FUNCTION, None);
                 }
             } else if let Some(_) = operation_context.PLUS() {
                 let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
                 let left_expr = &self.manage_left_expr(operation_context);
-                self.symbol_table
-                    .insert(id_context, Value::Number(left_expr + right_expr));
+                return Value::Number(left_expr + right_expr);
             } else if let Some(_) = operation_context.MINUS() {
                 let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
                 let left_expr = &self.manage_left_expr(operation_context);
-                self.symbol_table
-                    .insert(id_context, Value::Number(left_expr - right_expr));
+               return Value::Number(left_expr - right_expr);
             } else if let Some(_) = operation_context.KLEENE() {
                 let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
                 let left_expr = &self.manage_left_expr(operation_context);
-                self.symbol_table
-                    .insert(id_context, Value::Number(left_expr * right_expr));
+                return Value::Number(left_expr * right_expr);
             } else if let Some(_) = operation_context.SLASH() {
                 let right_expr = &self.manage_right_expr(operation_context.right_expr().unwrap());
                 let left_expr = &self.manage_left_expr(operation_context);
-                self.symbol_table
-                    .insert(id_context, Value::Number(left_expr / right_expr));
+                return Value::Number(left_expr / right_expr);
+            } else if let Some(right_expr) = operation_context.right_expr() {
+                return Value::Number(*&self.manage_right_expr(right_expr));
             }
         }
+        panic!("Operation not succeed")
     }
 
     fn manage_right_expr(&self, right_context: Rc<Right_exprContextAll>) -> f32 {
@@ -381,6 +375,21 @@ impl Listener {
                 }
                 Value::ID(id_value) => return id_value.get_value().parse::<f32>().unwrap(),
             },
+        }
+    }
+
+    fn check_value_number (value: Value) -> i32 {
+        match value {
+            Value::Number(number) => return number as i32,
+            Value::ID(value) => {
+                return Listener::check_value_number(*value);
+            }
+            Value::String(_) |
+            Value::Tuple(_) |
+            Value::Char(_) => {
+                panic!("Value must be a number")
+            }
+
         }
     }
 }
@@ -558,7 +567,8 @@ impl lifListener<'_> for Listener {
                         );
                     } else {
                         if let Some(operation_context) = _ctx.operation() {
-                            self.manage_operation(operation_context, id_context.get_text());
+                            let value = self.manage_operation(operation_context);
+                            self.symbol_table.insert(id_context.get_text(),value);
                         }
                     }
                 }
@@ -571,12 +581,14 @@ impl lifListener<'_> for Listener {
     }
 
     fn enter_for_instr(&mut self, _ctx: &For_instrContext<'_>) {
-        let mut iterator = self.manage_right_expr(_ctx.right_expr(0).unwrap()) as i64;
-        let max = self.manage_right_expr(_ctx.right_expr(1).unwrap()) as i64;
+        let mut iterator_value = self.manage_operation(_ctx.operation(0).unwrap());
+        let max = Listener::check_value_number(self.manage_operation(_ctx.operation(1).unwrap()));
         self.symbol_table.insert(
             _ctx.ID().unwrap().get_text(),
-            Value::Number(iterator as f32),
+            iterator_value.clone(),
         );
+
+        let mut iterator = Listener::check_value_number(iterator_value);
 
         while iterator < max {
             for instr in _ctx.instruction_all() {

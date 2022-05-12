@@ -7,7 +7,7 @@ import lifWords;
  */
 root:instruction*;
 
-instruction:    connect
+instruction:        connect
                 |   create
                 |   delete
                 |   attach
@@ -29,10 +29,11 @@ in_instr: IN tuple(COMMA tuple)*;
 
 out: OUT tuple(COMMA tuple)*;
 
-for_instr : FOR ID EQUAL right_expr TO LPAR right_expr RPAR LEFT_BRACE instruction+ RIGHT_BRACE;
+for_instr : FOR ID EQUAL operation TO LPAR operation RPAR LEFT_BRACE instruction+ RIGHT_BRACE;
 
-operation :  get_function
+operation :   get_function
             | len_function
+            | right_expr
             | (ID | NUMBER) PLUS right_expr
             | (ID | NUMBER) MINUS right_expr
             | (ID | NUMBER) KLEENE right_expr
