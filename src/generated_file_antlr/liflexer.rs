@@ -4,142 +4,237 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 use antlr_rust::atn::ATN;
+use antlr_rust::atn_deserializer::ATNDeserializer;
 use antlr_rust::char_stream::CharStream;
+use antlr_rust::dfa::DFA;
+use antlr_rust::error_listener::ErrorListener;
 use antlr_rust::int_stream::IntStream;
 use antlr_rust::lexer::{BaseLexer, Lexer, LexerRecog};
-use antlr_rust::atn_deserializer::ATNDeserializer;
-use antlr_rust::dfa::DFA;
-use antlr_rust::lexer_atn_simulator::{LexerATNSimulator, ILexerATNSimulator};
-use antlr_rust::PredictionContextCache;
-use antlr_rust::recognizer::{Recognizer,Actions};
-use antlr_rust::error_listener::ErrorListener;
-use antlr_rust::TokenSource;
-use antlr_rust::token_factory::{TokenFactory,CommonTokenFactory,TokenAware};
+use antlr_rust::lexer_atn_simulator::{ILexerATNSimulator, LexerATNSimulator};
+use antlr_rust::parser_rule_context::{cast, BaseParserRuleContext, ParserRuleContext};
+use antlr_rust::recognizer::{Actions, Recognizer};
+use antlr_rust::rule_context::{BaseRuleContext, EmptyContext, EmptyCustomRuleContext};
 use antlr_rust::token::*;
-use antlr_rust::rule_context::{BaseRuleContext,EmptyCustomRuleContext,EmptyContext};
-use antlr_rust::parser_rule_context::{ParserRuleContext,BaseParserRuleContext,cast};
-use antlr_rust::vocabulary::{Vocabulary,VocabularyImpl};
+use antlr_rust::token_factory::{CommonTokenFactory, TokenAware, TokenFactory};
+use antlr_rust::vocabulary::{Vocabulary, VocabularyImpl};
+use antlr_rust::PredictionContextCache;
+use antlr_rust::TokenSource;
 
-use antlr_rust::{lazy_static,Tid,TidAble,TidExt};
+use antlr_rust::{lazy_static, Tid, TidAble, TidExt};
 
-use std::sync::Arc;
 use std::cell::RefCell;
-use std::rc::Rc;
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
+use std::sync::Arc;
 
+pub const CONNECT: isize = 1;
+pub const ATTACH: isize = 2;
+pub const CREATE: isize = 3;
+pub const DELETE: isize = 4;
+pub const OUT: isize = 5;
+pub const READ: isize = 6;
+pub const IN: isize = 7;
+pub const TCP: isize = 8;
+pub const UDP: isize = 9;
+pub const VAR: isize = 10;
+pub const GET: isize = 11;
+pub const LEN: isize = 12;
+pub const FOR: isize = 13;
+pub const TO: isize = 14;
+pub const LPAR: isize = 15;
+pub const RPAR: isize = 16;
+pub const COMMA: isize = 17;
+pub const DOUBLEQUOTE: isize = 18;
+pub const QUOTE: isize = 19;
+pub const SLASH: isize = 20;
+pub const BACKSLASH: isize = 21;
+pub const LBRACKET: isize = 22;
+pub const RBRACKET: isize = 23;
+pub const DOT: isize = 24;
+pub const DOUBLEDOT: isize = 25;
+pub const SEMICOLON: isize = 26;
+pub const KLEENE: isize = 27;
+pub const WILDCARD: isize = 28;
+pub const EQUAL: isize = 29;
+pub const PLUS: isize = 30;
+pub const MINUS: isize = 31;
+pub const RIGHT_BRACE: isize = 32;
+pub const LEFT_BRACE: isize = 33;
+pub const ID: isize = 34;
+pub const NUMBER: isize = 35;
+pub const STRING: isize = 36;
+pub const CHARACTER: isize = 37;
+pub const LINECOMMENT: isize = 38;
+pub const COMMENT: isize = 39;
+pub const NEWLINE: isize = 40;
+pub const WS: isize = 41;
+pub const channelNames: [&'static str; 0 + 2] = ["DEFAULT_TOKEN_CHANNEL", "HIDDEN"];
 
-	pub const CONNECT:isize=1; 
-	pub const ATTACH:isize=2; 
-	pub const CREATE:isize=3; 
-	pub const DELETE:isize=4; 
-	pub const OUT:isize=5; 
-	pub const READ:isize=6; 
-	pub const IN:isize=7; 
-	pub const TCP:isize=8; 
-	pub const UDP:isize=9; 
-	pub const VAR:isize=10; 
-	pub const GET:isize=11; 
-	pub const LEN:isize=12; 
-	pub const FOR:isize=13; 
-	pub const TO:isize=14; 
-	pub const LPAR:isize=15; 
-	pub const RPAR:isize=16; 
-	pub const COMMA:isize=17; 
-	pub const DOUBLEQUOTE:isize=18; 
-	pub const QUOTE:isize=19; 
-	pub const SLASH:isize=20; 
-	pub const BACKSLASH:isize=21; 
-	pub const LBRACKET:isize=22; 
-	pub const RBRACKET:isize=23; 
-	pub const DOT:isize=24; 
-	pub const DOUBLEDOT:isize=25; 
-	pub const SEMICOLON:isize=26; 
-	pub const KLEENE:isize=27; 
-	pub const WILDCARD:isize=28; 
-	pub const EQUAL:isize=29; 
-	pub const PLUS:isize=30; 
-	pub const MINUS:isize=31; 
-	pub const RIGHT_BRACE:isize=32; 
-	pub const LEFT_BRACE:isize=33; 
-	pub const ID:isize=34; 
-	pub const NUMBER:isize=35; 
-	pub const STRING:isize=36; 
-	pub const CHARACTER:isize=37; 
-	pub const LINECOMMENT:isize=38; 
-	pub const COMMENT:isize=39; 
-	pub const NEWLINE:isize=40; 
-	pub const WS:isize=41;
-	pub const channelNames: [&'static str;0+2] = [
-		"DEFAULT_TOKEN_CHANNEL", "HIDDEN"
-	];
+pub const modeNames: [&'static str; 1] = ["DEFAULT_MODE"];
 
-	pub const modeNames: [&'static str;1] = [
-		"DEFAULT_MODE"
-	];
+pub const ruleNames: [&'static str; 43] = [
+    "CONNECT",
+    "ATTACH",
+    "CREATE",
+    "DELETE",
+    "OUT",
+    "READ",
+    "IN",
+    "TCP",
+    "UDP",
+    "VAR",
+    "GET",
+    "LEN",
+    "FOR",
+    "TO",
+    "LPAR",
+    "RPAR",
+    "COMMA",
+    "DOUBLEQUOTE",
+    "QUOTE",
+    "SLASH",
+    "BACKSLASH",
+    "LBRACKET",
+    "RBRACKET",
+    "DOT",
+    "DOUBLEDOT",
+    "SEMICOLON",
+    "KLEENE",
+    "WILDCARD",
+    "EQUAL",
+    "PLUS",
+    "MINUS",
+    "RIGHT_BRACE",
+    "LEFT_BRACE",
+    "ID",
+    "LETTER",
+    "DIGIT",
+    "NUMBER",
+    "STRING",
+    "CHARACTER",
+    "LINECOMMENT",
+    "COMMENT",
+    "NEWLINE",
+    "WS",
+];
 
-	pub const ruleNames: [&'static str;43] = [
-		"CONNECT", "ATTACH", "CREATE", "DELETE", "OUT", "READ", "IN", "TCP", "UDP", 
-		"VAR", "GET", "LEN", "FOR", "TO", "LPAR", "RPAR", "COMMA", "DOUBLEQUOTE", 
-		"QUOTE", "SLASH", "BACKSLASH", "LBRACKET", "RBRACKET", "DOT", "DOUBLEDOT", 
-		"SEMICOLON", "KLEENE", "WILDCARD", "EQUAL", "PLUS", "MINUS", "RIGHT_BRACE", 
-		"LEFT_BRACE", "ID", "LETTER", "DIGIT", "NUMBER", "STRING", "CHARACTER", 
-		"LINECOMMENT", "COMMENT", "NEWLINE", "WS"
-	];
+pub const _LITERAL_NAMES: [Option<&'static str>; 34] = [
+    None,
+    Some("'connect'"),
+    Some("'attach'"),
+    Some("'create'"),
+    Some("'delete'"),
+    Some("'out'"),
+    Some("'read'"),
+    Some("'in'"),
+    Some("'tcp'"),
+    Some("'udp'"),
+    Some("'var'"),
+    Some("'get'"),
+    Some("'len'"),
+    Some("'for'"),
+    Some("'to'"),
+    Some("'('"),
+    Some("')'"),
+    Some("','"),
+    Some("'\"'"),
+    Some("'''"),
+    Some("'/'"),
+    Some("'\\'"),
+    Some("'['"),
+    Some("']'"),
+    Some("'.'"),
+    Some("':'"),
+    Some("';'"),
+    Some("'*'"),
+    Some("'_'"),
+    Some("'='"),
+    Some("'+'"),
+    Some("'-'"),
+    Some("'}'"),
+    Some("'{'"),
+];
+pub const _SYMBOLIC_NAMES: [Option<&'static str>; 42] = [
+    None,
+    Some("CONNECT"),
+    Some("ATTACH"),
+    Some("CREATE"),
+    Some("DELETE"),
+    Some("OUT"),
+    Some("READ"),
+    Some("IN"),
+    Some("TCP"),
+    Some("UDP"),
+    Some("VAR"),
+    Some("GET"),
+    Some("LEN"),
+    Some("FOR"),
+    Some("TO"),
+    Some("LPAR"),
+    Some("RPAR"),
+    Some("COMMA"),
+    Some("DOUBLEQUOTE"),
+    Some("QUOTE"),
+    Some("SLASH"),
+    Some("BACKSLASH"),
+    Some("LBRACKET"),
+    Some("RBRACKET"),
+    Some("DOT"),
+    Some("DOUBLEDOT"),
+    Some("SEMICOLON"),
+    Some("KLEENE"),
+    Some("WILDCARD"),
+    Some("EQUAL"),
+    Some("PLUS"),
+    Some("MINUS"),
+    Some("RIGHT_BRACE"),
+    Some("LEFT_BRACE"),
+    Some("ID"),
+    Some("NUMBER"),
+    Some("STRING"),
+    Some("CHARACTER"),
+    Some("LINECOMMENT"),
+    Some("COMMENT"),
+    Some("NEWLINE"),
+    Some("WS"),
+];
+lazy_static! {
+    static ref _shared_context_cache: Arc<PredictionContextCache> =
+        Arc::new(PredictionContextCache::new());
+    static ref VOCABULARY: Box<dyn Vocabulary> = Box::new(VocabularyImpl::new(
+        _LITERAL_NAMES.iter(),
+        _SYMBOLIC_NAMES.iter(),
+        None
+    ));
+}
 
-
-	pub const _LITERAL_NAMES: [Option<&'static str>;34] = [
-		None, Some("'connect'"), Some("'attach'"), Some("'create'"), Some("'delete'"), 
-		Some("'out'"), Some("'read'"), Some("'in'"), Some("'tcp'"), Some("'udp'"), 
-		Some("'var'"), Some("'get'"), Some("'len'"), Some("'for'"), Some("'to'"), 
-		Some("'('"), Some("')'"), Some("','"), Some("'\"'"), Some("'''"), Some("'/'"), 
-		Some("'\\'"), Some("'['"), Some("']'"), Some("'.'"), Some("':'"), Some("';'"), 
-		Some("'*'"), Some("'_'"), Some("'='"), Some("'+'"), Some("'-'"), Some("'}'"), 
-		Some("'{'")
-	];
-	pub const _SYMBOLIC_NAMES: [Option<&'static str>;42]  = [
-		None, Some("CONNECT"), Some("ATTACH"), Some("CREATE"), Some("DELETE"), 
-		Some("OUT"), Some("READ"), Some("IN"), Some("TCP"), Some("UDP"), Some("VAR"), 
-		Some("GET"), Some("LEN"), Some("FOR"), Some("TO"), Some("LPAR"), Some("RPAR"), 
-		Some("COMMA"), Some("DOUBLEQUOTE"), Some("QUOTE"), Some("SLASH"), Some("BACKSLASH"), 
-		Some("LBRACKET"), Some("RBRACKET"), Some("DOT"), Some("DOUBLEDOT"), Some("SEMICOLON"), 
-		Some("KLEENE"), Some("WILDCARD"), Some("EQUAL"), Some("PLUS"), Some("MINUS"), 
-		Some("RIGHT_BRACE"), Some("LEFT_BRACE"), Some("ID"), Some("NUMBER"), Some("STRING"), 
-		Some("CHARACTER"), Some("LINECOMMENT"), Some("COMMENT"), Some("NEWLINE"), 
-		Some("WS")
-	];
-	lazy_static!{
-	    static ref _shared_context_cache: Arc<PredictionContextCache> = Arc::new(PredictionContextCache::new());
-		static ref VOCABULARY: Box<dyn Vocabulary> = Box::new(VocabularyImpl::new(_LITERAL_NAMES.iter(), _SYMBOLIC_NAMES.iter(), None));
-	}
-
-
-pub type LexerContext<'input> = BaseRuleContext<'input,EmptyCustomRuleContext<'input,LocalTokenFactory<'input> >>;
+pub type LexerContext<'input> =
+    BaseRuleContext<'input, EmptyCustomRuleContext<'input, LocalTokenFactory<'input>>>;
 pub type LocalTokenFactory<'input> = CommonTokenFactory;
 
-type From<'a> = <LocalTokenFactory<'a> as TokenFactory<'a> >::From;
+type From<'a> = <LocalTokenFactory<'a> as TokenFactory<'a>>::From;
 
 #[derive(Tid)]
-pub struct lifLexer<'input, Input:CharStream<From<'input> >> {
-	base: BaseLexer<'input,lifLexerActions,Input,LocalTokenFactory<'input>>,
+pub struct lifLexer<'input, Input: CharStream<From<'input>>> {
+    base: BaseLexer<'input, lifLexerActions, Input, LocalTokenFactory<'input>>,
 }
 
-impl<'input, Input:CharStream<From<'input> >> Deref for lifLexer<'input,Input>{
-	type Target = BaseLexer<'input,lifLexerActions,Input,LocalTokenFactory<'input>>;
+impl<'input, Input: CharStream<From<'input>>> Deref for lifLexer<'input, Input> {
+    type Target = BaseLexer<'input, lifLexerActions, Input, LocalTokenFactory<'input>>;
 
-	fn deref(&self) -> &Self::Target {
-		&self.base
-	}
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
 }
 
-impl<'input, Input:CharStream<From<'input> >> DerefMut for lifLexer<'input,Input>{
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.base
-	}
+impl<'input, Input: CharStream<From<'input>>> DerefMut for lifLexer<'input, Input> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
 }
 
-
-impl<'input, Input:CharStream<From<'input> >> lifLexer<'input,Input>{
+impl<'input, Input: CharStream<From<'input>>> lifLexer<'input, Input> {
     fn get_rule_names(&self) -> &'static [&'static str] {
         &ruleNames
     }
@@ -155,50 +250,55 @@ impl<'input, Input:CharStream<From<'input> >> lifLexer<'input,Input>{
         "lifLexer.g4"
     }
 
-	pub fn new_with_token_factory(input: Input, tf: &'input LocalTokenFactory<'input>) -> Self {
-		antlr_rust::recognizer::check_version("0","2");
-    	Self {
-			base: BaseLexer::new_base_lexer(
-				input,
-				LexerATNSimulator::new_lexer_atnsimulator(
-					_ATN.clone(),
-					_decision_to_DFA.clone(),
-					_shared_context_cache.clone(),
-				),
-				lifLexerActions{},
-				tf
-			)
-	    }
-	}
+    pub fn new_with_token_factory(input: Input, tf: &'input LocalTokenFactory<'input>) -> Self {
+        antlr_rust::recognizer::check_version("0", "2");
+        Self {
+            base: BaseLexer::new_base_lexer(
+                input,
+                LexerATNSimulator::new_lexer_atnsimulator(
+                    _ATN.clone(),
+                    _decision_to_DFA.clone(),
+                    _shared_context_cache.clone(),
+                ),
+                lifLexerActions {},
+                tf,
+            ),
+        }
+    }
 }
 
-impl<'input, Input:CharStream<From<'input> >> lifLexer<'input,Input> where &'input LocalTokenFactory<'input>:Default{
-	pub fn new(input: Input) -> Self{
-		lifLexer::new_with_token_factory(input, <&LocalTokenFactory<'input> as Default>::default())
-	}
+impl<'input, Input: CharStream<From<'input>>> lifLexer<'input, Input>
+where
+    &'input LocalTokenFactory<'input>: Default,
+{
+    pub fn new(input: Input) -> Self {
+        lifLexer::new_with_token_factory(input, <&LocalTokenFactory<'input> as Default>::default())
+    }
 }
 
-pub struct lifLexerActions {
+pub struct lifLexerActions {}
+
+impl lifLexerActions {}
+
+impl<'input, Input: CharStream<From<'input>>>
+    Actions<'input, BaseLexer<'input, lifLexerActions, Input, LocalTokenFactory<'input>>>
+    for lifLexerActions
+{
 }
 
-impl lifLexerActions{
+impl<'input, Input: CharStream<From<'input>>> lifLexer<'input, Input> {}
+
+impl<'input, Input: CharStream<From<'input>>>
+    LexerRecog<'input, BaseLexer<'input, lifLexerActions, Input, LocalTokenFactory<'input>>>
+    for lifLexerActions
+{
+}
+impl<'input> TokenAware<'input> for lifLexerActions {
+    type TF = LocalTokenFactory<'input>;
 }
 
-impl<'input, Input:CharStream<From<'input> >> Actions<'input,BaseLexer<'input,lifLexerActions,Input,LocalTokenFactory<'input>>> for lifLexerActions{
-	}
-
-	impl<'input, Input:CharStream<From<'input> >> lifLexer<'input,Input>{
-
-}
-
-impl<'input, Input:CharStream<From<'input> >> LexerRecog<'input,BaseLexer<'input,lifLexerActions,Input,LocalTokenFactory<'input>>> for lifLexerActions{
-}
-impl<'input> TokenAware<'input> for lifLexerActions{
-	type TF = LocalTokenFactory<'input>;
-}
-
-impl<'input, Input:CharStream<From<'input> >> TokenSource<'input> for lifLexer<'input,Input>{
-	type TF = LocalTokenFactory<'input>;
+impl<'input, Input: CharStream<From<'input>>> TokenSource<'input> for lifLexer<'input, Input> {
+    type TF = LocalTokenFactory<'input>;
 
     fn next_token(&mut self) -> <Self::TF as TokenFactory<'input>>::Tok {
         self.base.next_token()
@@ -216,38 +316,30 @@ impl<'input, Input:CharStream<From<'input> >> TokenSource<'input> for lifLexer<'
         self.base.get_input_stream()
     }
 
-	fn get_source_name(&self) -> String {
-		self.base.get_source_name()
-	}
+    fn get_source_name(&self) -> String {
+        self.base.get_source_name()
+    }
 
     fn get_token_factory(&self) -> &'input Self::TF {
         self.base.get_token_factory()
     }
 }
 
+lazy_static! {
+    static ref _ATN: Arc<ATN> =
+        Arc::new(ATNDeserializer::new(None).deserialize(_serializedATN.chars()));
+    static ref _decision_to_DFA: Arc<Vec<antlr_rust::RwLock<DFA>>> = {
+        let mut dfa = Vec::new();
+        let size = _ATN.decision_to_state.len();
+        for i in 0..size {
+            dfa.push(DFA::new(_ATN.clone(), _ATN.get_decision_state(i), i as isize).into())
+        }
+        Arc::new(dfa)
+    };
+}
 
-
-	lazy_static! {
-	    static ref _ATN: Arc<ATN> =
-	        Arc::new(ATNDeserializer::new(None).deserialize(_serializedATN.chars()));
-	    static ref _decision_to_DFA: Arc<Vec<antlr_rust::RwLock<DFA>>> = {
-	        let mut dfa = Vec::new();
-	        let size = _ATN.decision_to_state.len();
-	        for i in 0..size {
-	            dfa.push(DFA::new(
-	                _ATN.clone(),
-	                _ATN.get_decision_state(i),
-	                i as isize,
-	            ).into())
-	        }
-	        Arc::new(dfa)
-	    };
-	}
-
-
-
-	const _serializedATN:&'static str =
-		"\x03\u{608b}\u{a72a}\u{8133}\u{b9ed}\u{417c}\u{3be7}\u{7786}\u{5964}\x02\
+const _serializedATN: &'static str =
+    "\x03\u{608b}\u{a72a}\u{8133}\u{b9ed}\u{417c}\u{3be7}\u{7786}\u{5964}\x02\
 		\x2b\u{116}\x08\x01\x04\x02\x09\x02\x04\x03\x09\x03\x04\x04\x09\x04\x04\
 		\x05\x09\x05\x04\x06\x09\x06\x04\x07\x09\x07\x04\x08\x09\x08\x04\x09\x09\
 		\x09\x04\x0a\x09\x0a\x04\x0b\x09\x0b\x04\x0c\x09\x0c\x04\x0d\x09\x0d\x04\

@@ -84,7 +84,9 @@ impl Server {
                                         Err(_) => {}
                                     };
                                 },
-                                Err(error) => {panic!("{}",error)}
+                                Err(error) => {
+                                    panic!("{}", error)
+                                }
                             };
                         }
                         Err(error) => {
@@ -120,7 +122,10 @@ impl Server {
                 Ok(response) => {
                     if response.len() != 0 {
                         let text = from_utf8(&response).unwrap();
-                        tx_response.send(text.parse().unwrap());
+                        match tx_response.send(text.parse().unwrap()) {
+                            Ok(_) => {}
+                            Err(error) => {eprintln!("{}",error)}
+                        };
                         break;
                     }
                 }
@@ -138,7 +143,10 @@ impl Server {
                 Ok(response) => {
                     if response != 0 {
                         let text = from_utf8(&buf).unwrap().trim_matches(char::from(0));
-                        tx_response.send(text.parse().unwrap());
+                        match tx_response.send(text.parse().unwrap()) {
+                            Ok(_) => {}
+                            Err(error) => {eprintln!("{}",error)}
+                        };
                         break;
                     }
                 }
@@ -168,8 +176,8 @@ impl Server {
         }
     }
 
-    pub fn disconnect(&self) {
-        let (tx, _) = &self.mpsc_channel;
-        tx.send(STOP_SERVER.to_string());
-    }
+    // pub fn disconnect(&self) {
+    //     let (tx, _) = &self.mpsc_channel;
+    //     tx.send(STOP_SERVER.to_string());
+    // }
 }

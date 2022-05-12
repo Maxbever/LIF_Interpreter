@@ -9,9 +9,18 @@ use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
 use crate::generated_file_antlr::lifparser::lifParser;
 use crate::generated_file_antlr::lifparser::lifParserContextType;
-use crate::lifparser::{lifTreeWalker, AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs, AttributContext, AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, For_instrContext, For_instrContextAttrs, Get_functionContext, Get_functionContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContext, Init_varContextAll, Init_varContextAttrs, InstructionContext, InstructionContextAttrs, Ip_addressContext, Len_functionContext, Len_functionContextAttrs, OperationContext, OperationContextAll, OperationContextAttrs, OutContext, OutContextAttrs, PortContext, ProtocolContext, ReadContext, ReadContextAttrs, Right_exprContext, Right_exprContextAll, Right_exprContextAttrs, RootContext, TupleContext, TupleContextAll, TupleContextAttrs, Tuple_contentContext, Tuple_contentContextAll, Tuple_contentContextAttrs, Tuple_space_nameContext, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, RootContextAttrs};
+use crate::lifparser::{
+    AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs,
+    AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext,
+    CreateContextAttrs, DeleteContext, DeleteContextAttrs, For_instrContext, For_instrContextAttrs,
+    Get_functionContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContextAll,
+    Init_varContextAttrs, InstructionContext, InstructionContextAttrs, Len_functionContextAttrs,
+    OperationContextAll, OperationContextAttrs, OutContext, OutContextAttrs, ReadContext,
+    ReadContextAttrs, Right_exprContextAll, Right_exprContextAttrs, RootContextAttrs,
+    TupleContextAll, TupleContextAttrs, Tuple_contentContextAttrs, Tuple_space_nameContextAll,
+    Tuple_space_nameContextAttrs,
+};
 use antlr_rust::common_token_stream::CommonTokenStream;
-use antlr_rust::rule_context::CustomRuleContext;
 use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
 use antlr_rust::InputStream;
 use server::Server;
@@ -102,7 +111,7 @@ impl Listener {
                             let response =
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list);
                             println!("{}", response);
-                            &self.server_list.insert(server_name, server);
+                            let _ = &self.server_list.insert(server_name, server);
                             return response;
                         }
                     }
@@ -122,7 +131,7 @@ impl Listener {
                             let response =
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list);
                             println!("{}", response);
-                            &self.server_list.insert(server_name, server);
+                            let _ = &self.server_list.insert(server_name, server);
                             return response;
                         }
                     }
@@ -142,7 +151,7 @@ impl Listener {
                             let response =
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list);
                             println!("{}", response);
-                            &self.server_list.insert(server_name, server);
+                            let _ = &self.server_list.insert(server_name, server);
                             return response;
                         }
                     }
@@ -166,7 +175,7 @@ impl Listener {
             } else {
                 let mut tuple_list: Vec<Value> = Vec::new();
                 for tuple in tuple_context.tuple_content_all() {
-                    let mut tuple_value: Value;
+                    let tuple_value: Value;
                     if let Some(_) = tuple.WILDCARD() {
                         tuple_value = Value::Char('_');
                     } else {
@@ -296,7 +305,7 @@ impl Listener {
                     Value::Number(vec_temp.len() as f32)
                 } else {
                     vec_temp.remove(index.unwrap())
-                }
+                };
             }
             _ => {
                 panic!("Get must be on tuple")
@@ -306,10 +315,14 @@ impl Listener {
 
     fn manage_operation(&mut self, operation_context: Rc<OperationContextAll>) -> Value {
         if let Some(get_context) = operation_context.get_function() {
-            if let Some(right_exp) = get_context.right_expr(){
+            if let Some(right_exp) = get_context.right_expr() {
                 let index = self.manage_right_expr(right_exp);
                 if let Some(tuple_context) = get_context.tuple() {
-                    return self.function_on_tuple(tuple_context, GET_FUNCTION, Some(index as usize));
+                    return self.function_on_tuple(
+                        tuple_context,
+                        GET_FUNCTION,
+                        Some(index as usize),
+                    );
                 }
             }
         } else {
@@ -320,19 +333,31 @@ impl Listener {
             } else if let Some(_) = operation_context.PLUS() {
                 let right_expr = self.manage_operation(operation_context.operation(1).unwrap());
                 let left_expr = self.manage_operation(operation_context.operation(0).unwrap());
-                return Value::Number((Listener::check_value_number(left_expr) + Listener::check_value_number(right_expr)) as f32);
+                return Value::Number(
+                    (Listener::check_value_number(left_expr)
+                        + Listener::check_value_number(right_expr)) as f32,
+                );
             } else if let Some(_) = operation_context.MINUS() {
                 let right_expr = self.manage_operation(operation_context.operation(1).unwrap());
                 let left_expr = self.manage_operation(operation_context.operation(0).unwrap());
-                return Value::Number(Listener::check_value_number(left_expr) as f32 - Listener::check_value_number(right_expr) as f32);
+                return Value::Number(
+                    Listener::check_value_number(left_expr) as f32
+                        - Listener::check_value_number(right_expr) as f32,
+                );
             } else if let Some(_) = operation_context.KLEENE() {
                 let right_expr = self.manage_operation(operation_context.operation(1).unwrap());
                 let left_expr = self.manage_operation(operation_context.operation(0).unwrap());
-                return Value::Number((Listener::check_value_number(left_expr) * Listener::check_value_number(right_expr)) as f32);
+                return Value::Number(
+                    (Listener::check_value_number(left_expr)
+                        * Listener::check_value_number(right_expr)) as f32,
+                );
             } else if let Some(_) = operation_context.SLASH() {
                 let right_expr = self.manage_operation(operation_context.operation(1).unwrap());
                 let left_expr = self.manage_operation(operation_context.operation(0).unwrap());
-                return Value::Number(Listener::check_value_number(left_expr) as f32 / Listener::check_value_number(right_expr)as f32);
+                return Value::Number(
+                    Listener::check_value_number(left_expr) as f32
+                        / Listener::check_value_number(right_expr) as f32,
+                );
             } else if let Some(right_expr) = operation_context.right_expr() {
                 return Value::Number(*&self.manage_right_expr(right_expr));
             }
@@ -368,18 +393,15 @@ impl Listener {
         }
     }
 
-    fn check_value_number (value: Value) -> i32 {
+    fn check_value_number(value: Value) -> i32 {
         match value {
             Value::Number(number) => return number as i32,
             Value::ID(value) => {
                 return Listener::check_value_number(*value);
             }
-            Value::String(_) |
-            Value::Tuple(_) |
-            Value::Char(_) => {
+            Value::String(_) | Value::Tuple(_) | Value::Char(_) => {
                 panic!("Value must be a number")
             }
-
         }
     }
 }
@@ -558,7 +580,7 @@ impl lifListener<'_> for Listener {
                     } else {
                         if let Some(operation_context) = _ctx.operation() {
                             let value = self.manage_operation(operation_context);
-                            self.symbol_table.insert(id_context.get_text(),value);
+                            self.symbol_table.insert(id_context.get_text(), value);
                         }
                     }
                 }
@@ -571,12 +593,10 @@ impl lifListener<'_> for Listener {
     }
 
     fn enter_for_instr(&mut self, _ctx: &For_instrContext<'_>) {
-        let mut iterator_value = self.manage_operation(_ctx.operation(0).unwrap());
+        let iterator_value = self.manage_operation(_ctx.operation(0).unwrap());
         let max = Listener::check_value_number(self.manage_operation(_ctx.operation(1).unwrap()));
-        self.symbol_table.insert(
-            _ctx.ID().unwrap().get_text(),
-            iterator_value.clone(),
-        );
+        self.symbol_table
+            .insert(_ctx.ID().unwrap().get_text(), iterator_value.clone());
 
         let mut iterator = Listener::check_value_number(iterator_value);
 
@@ -605,7 +625,7 @@ fn main() {
             println!("Start parsing lif");
             //lifTreeWalker::walk(Box::new(Listener::new()), &*parser.root().unwrap());
             let mut listener = Listener::new();
-            for instr in parser.root().unwrap().instruction_all(){
+            for instr in parser.root().unwrap().instruction_all() {
                 listener.enter_instruction(&instr);
             }
         }

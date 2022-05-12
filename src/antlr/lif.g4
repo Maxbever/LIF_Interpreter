@@ -23,10 +23,6 @@ delete:  DELETE attribut tuple_space_name;
 
 attach: ATTACH tuple_space_name (attribut)*;
 
-read: READ tuple(COMMA tuple)*;
-
-in_instr: IN tuple(COMMA tuple)*;
-
 out: OUT tuple(COMMA tuple)*;
 
 for_instr : FOR ID EQUAL operation TO LPAR operation RPAR LEFT_BRACE instruction+ RIGHT_BRACE;
@@ -43,11 +39,15 @@ get_function: tuple DOT GET LPAR right_expr RPAR;
 
 len_function: tuple DOT LEN LPAR RPAR;
 
+right_expr : ID | NUMBER;
+
 assignation : VAR ID EQUAL ( init_var  |   read   |   in_instr | operation);
 
-attribut: STRING | ID ;
+read: READ tuple(COMMA tuple)*;
 
-right_expr : ID | NUMBER;
+in_instr: IN tuple(COMMA tuple)*;
+
+attribut: STRING | ID ;
 
 tuple : LPAR (tuple_content (COMMA tuple_content)*) RPAR | ID;
 tuple_content : init_var | WILDCARD ;
