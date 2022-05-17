@@ -15,13 +15,13 @@ instruction:        connect
                 |   for_instr
                 |   assignation;
 
-connect : CONNECT protocol DOUBLEDOT ip_address DOUBLEDOT port;
+connect : CONNECT server_name protocol DOUBLEDOT ip_address DOUBLEDOT port;
 
-create: CREATE attribut tuple_space_name (attribut)*;
+create: CREATE attribut server_name DOUBLEDOT tuple_space_name (attribut)*;
 
-delete:  DELETE attribut tuple_space_name;
+delete:  DELETE attribut server_name DOUBLEDOT tuple_space_name;
 
-attach: ATTACH tuple_space_name (attribut)*;
+attach: ATTACH server_name DOUBLEDOT tuple_space_name (attribut)*;
 
 out: OUT tuple(COMMA tuple)*;
 
@@ -50,9 +50,12 @@ in_instr: IN tuple(COMMA tuple)*;
 attribut: STRING | ID ;
 
 tuple : LPAR (tuple_content (COMMA tuple_content)*) RPAR | ID;
+
 tuple_content : init_var | WILDCARD ;
 
 tuple_space_name: STRING | ID ;
+
+server_name: STRING | ID ;
 
 init_var:   NUMBER
             | STRING

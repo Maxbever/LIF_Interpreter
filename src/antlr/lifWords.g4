@@ -41,7 +41,7 @@ MINUS: '-';
 RIGHT_BRACE : '}';
 LEFT_BRACE : '{';
 
-ID: LETTER (LETTER | DIGIT)* ;
+ID: LETTER (LETTER | DIGIT | WILDCARD)* ;
 fragment LETTER: 'A'..'Z' | 'a'..'z' ;
 fragment DIGIT: '0'..'9' ;
 

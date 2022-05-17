@@ -14,7 +14,7 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(ip_address: String, port: String, protocol: String) -> Server {
+    pub fn new(ip_address: String, port: String, protocol: String, server_name:String) -> Server {
         let address = format!("{}:{}", ip_address, port);
         let addr: String = address.parse().unwrap();
         let (tx, rx): (Sender<String>, Receiver<String>) = mpsc::channel();
@@ -22,7 +22,7 @@ impl Server {
 
         match protocol.as_str() {
             TCP => {
-                thread::spawn(move || {
+                match thread::Builder::new().name(server_name).spawn(move || {
                     match TcpStream::connect(addr) {
                         Ok(mut server) => {
                             Server::read_response_tcp(&mut server, &tx_response);
@@ -54,10 +54,15 @@ impl Server {
                             panic!("{}", error);
                         }
                     };
-                });
+                }) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        panic!("{}", error);
+                    }
+                };
             }
             UDP => {
-                thread::spawn(move || {
+                match thread::Builder::new().name(server_name).spawn(move || {
                     match UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)) {
                         Ok(mut server) => {
                             match server.connect(addr) {
@@ -93,7 +98,12 @@ impl Server {
                             println!("UDP socket error : {}", error);
                         }
                     };
-                });
+                }) {
+                    Ok(_) => {}
+                    Err(error) => {
+                        panic!("{}", error);
+                    }
+                };
             }
             _ => {}
         };

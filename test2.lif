@@ -1,0 +1,32 @@
+var server_tcp_name = "TCP_server"
+var server_udp_name = "UDP_server"
+var admin_attribute = "admin"
+var tuple_space_name = "data"
+var tuple_space_name_mean = "tuple_space_mean"
+var attribute = "attribute"
+
+connect server_tcp_name tcp:127.0.0.1:9000
+connect server_udp_name udp:127.0.0.1:9001
+
+create admin_attribute server_tcp_name:tuple_space_name attribute
+create admin_attribute server_udp_name:tuple_space_name_mean attribute
+
+attach server_tcp_name:tuple_space_name attribute
+
+out ("temp", 21),("temp", 23),("temp", 29),("temp", 25),("temp", 20)
+
+var data = in ("temp", _),("temp", _), ("temp", _), ("temp", _), ("temp", _)
+var sum = 0
+
+for iterator = 0 to (data.len()) {
+    var tuple = data.get(iterator)
+    var sum = sum + tuple.get(1)
+}
+
+var mean = sum / data.len()
+var test = mean
+var test = test + 2
+
+attach server_udp_name:tuple_space_name_mean attribute
+
+out (mean, test)

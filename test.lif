@@ -1,5 +1,8 @@
-connect tcp:127.0.0.1:9000
-//connect udp:127.0.0.1:9001
+var s_1 = "server1"
+var s2 = "server2"
+
+connect s1 tcp:127.0.0.1:9000
+connect s2 udp:127.0.0.1:9001
 
 var attributes = "att1"
 var admin = "admin"
@@ -13,16 +16,16 @@ var tuple2 = (_)
 var tuple3 = tuple
 var tuple4 = (4,5,5,(4))
 
-create admin tsName attributes attributes2 attributes3 attributes4
-create admin tsName2 attributes
+create admin s1:tsName attributes attributes2 attributes3 attributes4
+create admin s1:tsName2 attributes
 
-attach tsName attributes attributes3
+attach s1:tsName attributes attributes3
 out tuple3,tuple4
 var result =  read (_,45),(_,78)
 var result1 = in (_),(_)
-//delete attributes4 tsName
+//delete attributes4 server1:tsName
 
-attach tsName2 attributes
+attach s1:tsName2 attributes
 out ("test",45),("test2",78)
 var result2 =  read (_),(_)
 var result3 = in (_),(_)
@@ -68,4 +71,4 @@ for i = 0 to (data.len()) {
 var mean = sum / data.len()
 out (mean)
 
-//delete attributes tsName2
+delete attributes s1:tsName2

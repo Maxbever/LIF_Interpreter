@@ -17,8 +17,8 @@ use crate::lifparser::{
     Init_varContextAttrs, InstructionContext, InstructionContextAttrs, Len_functionContextAttrs,
     OperationContextAll, OperationContextAttrs, OutContext, OutContextAttrs, ReadContext,
     ReadContextAttrs, Right_exprContextAll, Right_exprContextAttrs, RootContextAttrs,
-    TupleContextAll, TupleContextAttrs, Tuple_contentContextAttrs, Tuple_space_nameContextAll,
-    Tuple_space_nameContextAttrs,
+    Server_nameContextAll, Server_nameContextAttrs, TupleContextAll, TupleContextAttrs,
+    Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs,
 };
 use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
@@ -35,6 +35,7 @@ mod server;
 struct Listener {
     server_list: HashMap<String, Server>,
     symbol_table: HashMap<String, Value>,
+    server_attached: String,
 }
 
 enum Value {
@@ -91,14 +92,19 @@ impl Listener {
         Listener {
             server_list: HashMap::new(),
             symbol_table: HashMap::new(),
+            server_attached: String::new(),
         }
     }
 
-    fn manage_tuple_operation(&mut self, _ctx: TupleOperationContext, operation: &str) -> String {
+    fn manage_tuple_operation(
+        &mut self,
+        _ctx: TupleOperationContext,
+        operation: &str,
+        server_name: &String,
+    ) -> String {
         match _ctx {
             TupleOperationContext::OutContext(context) => {
                 if let Some(_) = context.tuple(0) {
-                    let server_name = String::from("test");
                     let server = self.server_list.remove(&*server_name);
                     match server {
                         None => {}
@@ -111,7 +117,7 @@ impl Listener {
                             let response =
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list);
                             println!("{}", response);
-                            let _ = &self.server_list.insert(server_name, server);
+                            let _ = &self.server_list.insert(server_name.clone(), server);
                             return response;
                         }
                     }
@@ -119,7 +125,6 @@ impl Listener {
             }
             TupleOperationContext::InContext(context) => {
                 if let Some(_) = context.tuple(0) {
-                    let server_name = String::from("test");
                     let server = self.server_list.remove(&*server_name);
                     match server {
                         None => {}
@@ -131,7 +136,7 @@ impl Listener {
                             let response =
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list);
                             println!("{}", response);
-                            let _ = &self.server_list.insert(server_name, server);
+                            let _ = &self.server_list.insert(server_name.clone(), server);
                             return response;
                         }
                     }
@@ -139,7 +144,6 @@ impl Listener {
             }
             TupleOperationContext::ReadContext(context) => {
                 if let Some(_) = context.tuple(0) {
-                    let server_name = String::from("test");
                     let server = self.server_list.remove(&*server_name);
                     match server {
                         None => {}
@@ -151,7 +155,7 @@ impl Listener {
                             let response =
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list);
                             println!("{}", response);
-                            let _ = &self.server_list.insert(server_name, server);
+                            let _ = &self.server_list.insert(server_name.clone(), server);
                             return response;
                         }
                     }
@@ -217,11 +221,19 @@ impl Listener {
         };
     }
 
-    fn validate_tuple_name(&self, attribute: Rc<Tuple_space_nameContextAll>) -> String {
-        return if let Some(id_attribute) = attribute.ID() {
+    fn validate_tuple_name(&self, tuple_space_ctx: Rc<Tuple_space_nameContextAll>) -> String {
+        return if let Some(id_attribute) = tuple_space_ctx.ID() {
             self.validate_variable(id_attribute)
         } else {
-            attribute.get_text()
+            tuple_space_ctx.get_text()
+        };
+    }
+
+    fn validate_server_name(&self, server_name_ctx: Rc<Server_nameContextAll>) -> String {
+        return if let Some(id_attribute) = server_name_ctx.ID() {
+            self.validate_variable(id_attribute)
+        } else {
+            server_name_ctx.get_text()
         };
     }
 
@@ -430,38 +442,123 @@ impl lifListener<'_> for Listener {
     }
 
     fn enter_connect(&mut self, _ctx: &ConnectContext<'_>) {
-        if let Some(protocol) = _ctx.protocol() {
-            if let Some(ip_address) = _ctx.ip_address() {
-                if let Some(port) = _ctx.port() {
-                    let server =
-                        Server::new(ip_address.get_text(), port.get_text(), protocol.get_text());
-                    self.server_list.insert("test".parse().unwrap(), server); //TODO Manage server list
+        if let Some(server_name) = _ctx.server_name() {
+            if let Some(protocol) = _ctx.protocol() {
+                if let Some(ip_address) = _ctx.ip_address() {
+                    if let Some(port) = _ctx.port() {
+                        let server_name = self.validate_server_name(server_name);
+                        let server = Server::new(
+                            ip_address.get_text(), port.get_text(),
+                            protocol.get_text(),server_name.clone(),
+                        );
+                        self.server_list.insert(server_name, server);
+                    }
                 }
             }
         }
     }
 
     fn enter_create(&mut self, _ctx: &CreateContext<'_>) {
-        if let Some(attribute) = _ctx.attribut(0) {
+        if let Some(server_name) = _ctx.server_name() {
+            if let Some(attribute) = _ctx.attribut(0) {
+                if let Some(tuple_space_name) = _ctx.tuple_space_name() {
+                    let server_name = self.validate_server_name(server_name);
+                    let server = self.server_list.get(&*server_name);
+                    match server {
+                        None => {}
+                        Some(server) => {
+                            if let Some(_) = _ctx.attribut(1) {
+                                let mut attribute_list: String = String::new();
+                                let mut list = _ctx.attribut_all();
+                                list.remove(0);
+                                for attribute in list {
+                                    attribute_list +=
+                                        &*(self.validate_attribute(attribute) + &*" ".to_string());
+                                }
+                                println!(
+                                    "{}",
+                                    server.send_message(
+                                        String::from(CREATE)
+                                            + SPACE
+                                            + &*self.validate_attribute(attribute)
+                                            + SPACE
+                                            + &*self.validate_tuple_name(tuple_space_name)
+                                            + SPACE
+                                            + &*attribute_list
+                                    )
+                                );
+                            } else {
+                                println!(
+                                    "{}",
+                                    server.send_message(
+                                        String::from(CREATE)
+                                            + SPACE
+                                            + &*self.validate_attribute(attribute)
+                                            + SPACE
+                                            + &*self.validate_tuple_name(tuple_space_name)
+                                    )
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn enter_delete(&mut self, _ctx: &DeleteContext<'_>) {
+        if let Some(server_name) = _ctx.server_name() {
             if let Some(tuple_space_name) = _ctx.tuple_space_name() {
-                let server = self.server_list.get(&*String::from("test"));
+                let server_name = self.validate_server_name(server_name);
+                let server = self.server_list.get(&*server_name);
                 match server {
                     None => {}
                     Some(server) => {
-                        if let Some(_) = _ctx.attribut(1) {
+                        if let Some(attribute) = _ctx.attribut() {
+                            println!(
+                                "{}",
+                                server.send_message(
+                                    String::from(DELETE)
+                                        + SPACE
+                                        + &*self.validate_attribute(attribute)
+                                        + SPACE
+                                        + &*self.validate_tuple_name(tuple_space_name)
+                                )
+                            );
+                        } else {
+                            println!(
+                                "{}",
+                                server.send_message(
+                                    String::from(DELETE)
+                                        + SPACE
+                                        + &*self.validate_tuple_name(tuple_space_name)
+                                )
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn enter_attach(&mut self, _ctx: &AttachContext<'_>) {
+        if let Some(server_name) = _ctx.server_name() {
+            self.server_attached = self.validate_server_name(server_name);
+            if let Some(tuple_space_name) = _ctx.tuple_space_name() {
+                let server = self.server_list.get(&*self.server_attached);
+                match server {
+                    None => {}
+                    Some(server) => {
+                        if let Some(_) = _ctx.attribut(0) {
                             let mut attribute_list: String = String::new();
-                            let mut list = _ctx.attribut_all();
-                            list.remove(0);
-                            for attribute in list {
+                            for attribute in _ctx.attribut_all() {
                                 attribute_list +=
                                     &*(self.validate_attribute(attribute) + &*" ".to_string());
                             }
                             println!(
                                 "{}",
                                 server.send_message(
-                                    String::from(CREATE)
-                                        + SPACE
-                                        + &*self.validate_attribute(attribute)
+                                    String::from(ATTACH)
                                         + SPACE
                                         + &*self.validate_tuple_name(tuple_space_name)
                                         + SPACE
@@ -472,9 +569,7 @@ impl lifListener<'_> for Listener {
                             println!(
                                 "{}",
                                 server.send_message(
-                                    String::from(CREATE)
-                                        + SPACE
-                                        + &*self.validate_attribute(attribute)
+                                    String::from(ATTACH)
                                         + SPACE
                                         + &*self.validate_tuple_name(tuple_space_name)
                                 )
@@ -486,77 +581,12 @@ impl lifListener<'_> for Listener {
         }
     }
 
-    fn enter_delete(&mut self, _ctx: &DeleteContext<'_>) {
-        if let Some(tuple_space_name) = _ctx.tuple_space_name() {
-            let server = self.server_list.get(&*String::from("test"));
-            match server {
-                None => {}
-                Some(server) => {
-                    if let Some(attribute) = _ctx.attribut() {
-                        println!(
-                            "{}",
-                            server.send_message(
-                                String::from(DELETE)
-                                    + SPACE
-                                    + &*self.validate_attribute(attribute)
-                                    + SPACE
-                                    + &*self.validate_tuple_name(tuple_space_name)
-                            )
-                        );
-                    } else {
-                        println!(
-                            "{}",
-                            server.send_message(
-                                String::from(DELETE)
-                                    + SPACE
-                                    + &*self.validate_tuple_name(tuple_space_name)
-                            )
-                        );
-                    }
-                }
-            }
-        }
-    }
-
-    fn enter_attach(&mut self, _ctx: &AttachContext<'_>) {
-        if let Some(tuple_space_name) = _ctx.tuple_space_name() {
-            let server = self.server_list.get(&*String::from("test"));
-            match server {
-                None => {}
-                Some(server) => {
-                    if let Some(_) = _ctx.attribut(0) {
-                        let mut attribute_list: String = String::new();
-                        for attribute in _ctx.attribut_all() {
-                            attribute_list +=
-                                &*(self.validate_attribute(attribute) + &*" ".to_string());
-                        }
-                        println!(
-                            "{}",
-                            server.send_message(
-                                String::from(ATTACH)
-                                    + SPACE
-                                    + &*self.validate_tuple_name(tuple_space_name)
-                                    + SPACE
-                                    + &*attribute_list
-                            )
-                        );
-                    } else {
-                        println!(
-                            "{}",
-                            server.send_message(
-                                String::from(ATTACH)
-                                    + SPACE
-                                    + &*self.validate_tuple_name(tuple_space_name)
-                            )
-                        );
-                    }
-                }
-            }
-        }
-    }
-
     fn enter_out(&mut self, _ctx: &OutContext<'_>) {
-        self.manage_tuple_operation(TupleOperationContext::OutContext(_ctx), OUT);
+        self.manage_tuple_operation(
+            TupleOperationContext::OutContext(_ctx),
+            OUT,
+            &self.server_attached.clone(),
+        );
     }
 
     fn enter_assignation(&mut self, _ctx: &AssignationContext<'_>) {
@@ -570,12 +600,14 @@ impl lifListener<'_> for Listener {
                     response = self.manage_tuple_operation(
                         TupleOperationContext::ReadContext(&read_context),
                         READ,
+                        &self.server_attached.clone(),
                     );
                 } else {
                     if let Some(in_context) = _ctx.in_instr() {
                         response = self.manage_tuple_operation(
                             TupleOperationContext::InContext(&in_context),
                             IN,
+                            &self.server_attached.clone(),
                         );
                     } else {
                         if let Some(operation_context) = _ctx.operation() {
@@ -623,7 +655,6 @@ fn main() {
             let token_source = CommonTokenStream::new(lexer);
             let mut parser = lifParser::new(token_source);
             println!("Start parsing lif");
-            //lifTreeWalker::walk(Box::new(Listener::new()), &*parser.root().unwrap());
             let mut listener = Listener::new();
             for instr in parser.root().unwrap().instruction_all() {
                 listener.enter_instruction(&instr);
