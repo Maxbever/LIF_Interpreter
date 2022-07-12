@@ -20,6 +20,7 @@ attach {
 
 out ("temp", 21),("temp", 23),("temp", 29),("temp", 25),("temp", 20)
 
+/*
 var data = in ("temp", _),("temp", _), ("temp", _), ("temp", _), ("temp", _)
 var sum = 0
 
@@ -27,10 +28,21 @@ for iterator = 0 to (data.len()) {
     var tuple = data.get(iterator)
     var sum = sum + tuple.get(1)
 }
+*/
 
-var mean = sum / data.len()
+var data = in ("temp", _)
+var data = data.get(1)
+var sum = data
+
+while ( data != 29 ){
+    var data = in ("temp", _)
+    var data = data.get(1)
+    var sum = sum + data
+    out (sum)
+}
+
+var mean = sum / 5
 var test = mean
-var test = test + 2
 
 attach {
     server_udp_name
@@ -38,4 +50,4 @@ attach {
     attribute
 }
 
-out (mean, test)
+out (mean)

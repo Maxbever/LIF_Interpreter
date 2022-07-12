@@ -9,7 +9,21 @@ use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
 use crate::generated_file_antlr::lifparser::lifParser;
 use crate::generated_file_antlr::lifparser::lifParserContextType;
-use crate::lifparser::{AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs, AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, For_instrContext, For_instrContextAttrs, Get_functionContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs, InstructionContext, InstructionContextAttrs, Len_functionContextAttrs, OperationContextAll, OperationContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs, Right_exprContextAll, Right_exprContextAttrs, RootContextAttrs, Server_nameContextAll, Server_nameContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, Encryption_keyContextAll, Encryption_keyContextAttrs};
+use crate::lifparser::{
+    AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs,
+    AttributContextAll, AttributContextAttrs, Basic_boolean_operationContextAll,
+    Basic_boolean_operationContextAttrs, Boolean_operationContextAll,
+    Boolean_operationContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext,
+    CreateContextAttrs, DeleteContext, DeleteContextAttrs, Encryption_keyContextAll,
+    Encryption_keyContextAttrs, For_instrContext, For_instrContextAttrs, Get_functionContextAttrs,
+    In_instrContext, In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs,
+    InstructionContext, InstructionContextAttrs, Len_functionContextAttrs, OperationContextAll,
+    OperationContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs,
+    Right_exprContextAll, Right_exprContextAttrs, RootContextAttrs, Server_nameContextAll,
+    Server_nameContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAttrs,
+    Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, While_instrContext,
+    While_instrContextAll, While_instrContextAttrs,
+};
 use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
 use antlr_rust::InputStream;
@@ -321,7 +335,7 @@ impl Listener {
                 };
             }
             _ => {
-                panic!("Get must be on tuple")
+                panic!("Get or len must be on tuple")
             }
         }
     }
@@ -417,6 +431,41 @@ impl Listener {
             }
         }
     }
+
+    fn validate_boolean_operation(&self, boolean_expr: &Rc<Boolean_operationContextAll>) -> bool {
+        return if let Some(_) = boolean_expr.AND() {
+            self.validate_boolean_basic_operation(boolean_expr.basic_boolean_operation(0).unwrap())
+                && self.validate_boolean_basic_operation(
+                    boolean_expr.basic_boolean_operation(1).unwrap(),
+                )
+        } else if let Some(_) = boolean_expr.OR() {
+            self.validate_boolean_basic_operation(boolean_expr.basic_boolean_operation(0).unwrap())
+                || self.validate_boolean_basic_operation(
+                    boolean_expr.basic_boolean_operation(1).unwrap(),
+                )
+        } else {
+            self.validate_boolean_basic_operation(boolean_expr.basic_boolean_operation(0).unwrap())
+        };
+    }
+
+    fn validate_boolean_basic_operation(
+        &self,
+        boolean_expr: Rc<Basic_boolean_operationContextAll>,
+    ) -> bool {
+        return if let Some(_) = boolean_expr.RCHEVRON() {
+            self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
+                >= self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
+        } else if let Some(_) = boolean_expr.LCHEVRON() {
+            self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
+                <= self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
+        } else if let Some(_) = boolean_expr.EXCLAMATION() {
+            self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
+                != self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
+        } else {
+            self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
+                == self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
+        };
+    }
 }
 
 impl ParseTreeListener<'_, lifParserContextType> for Listener {}
@@ -439,6 +488,18 @@ impl lifListener<'_> for Listener {
             self.enter_for_instr(&for_context)
         } else if let Some(assignation_ctx) = _ctx.assignation() {
             self.enter_assignation(&assignation_ctx)
+        } else if let Some(while_ctx) = _ctx.while_instr() {
+            self.enter_while_instr(&while_ctx)
+        }
+    }
+
+    fn enter_while_instr(&mut self, _ctx: &While_instrContextAll<'_>) {
+        if let Some(boolean_expr) = _ctx.boolean_operation() {
+            while self.validate_boolean_operation(&boolean_expr) {
+                for instr in _ctx.instruction_all() {
+                    self.enter_instruction(&instr);
+                }
+            }
         }
     }
 
@@ -595,6 +656,26 @@ impl lifListener<'_> for Listener {
         );
     }
 
+    fn enter_for_instr(&mut self, _ctx: &For_instrContext<'_>) {
+        let iterator_value = self.manage_operation(_ctx.operation(0).unwrap());
+        let max = Listener::check_value_number(self.manage_operation(_ctx.operation(1).unwrap()));
+        self.symbol_table
+            .insert(_ctx.ID().unwrap().get_text(), iterator_value.clone());
+
+        let mut iterator = Listener::check_value_number(iterator_value);
+
+        while iterator < max {
+            for instr in _ctx.instruction_all() {
+                self.enter_instruction(&instr);
+            }
+            iterator += 1;
+            self.symbol_table.insert(
+                _ctx.ID().unwrap().get_text(),
+                Value::Number(iterator as f32),
+            );
+        }
+    }
+
     fn enter_assignation(&mut self, _ctx: &AssignationContext<'_>) {
         if let Some(id_context) = _ctx.ID() {
             if let Some(init_var_context) = _ctx.init_var() {
@@ -626,27 +707,11 @@ impl lifListener<'_> for Listener {
                     let value = self.parse_tuple(response);
                     let _ = self.symbol_table.insert(id_context.get_text(), value);
                 }
+                // else {
+                //     let value = self.parse_tuple(String::from("()"));
+                //     let _ = self.symbol_table.insert(id_context.get_text(), value);
+                // }
             }
-        }
-    }
-
-    fn enter_for_instr(&mut self, _ctx: &For_instrContext<'_>) {
-        let iterator_value = self.manage_operation(_ctx.operation(0).unwrap());
-        let max = Listener::check_value_number(self.manage_operation(_ctx.operation(1).unwrap()));
-        self.symbol_table
-            .insert(_ctx.ID().unwrap().get_text(), iterator_value.clone());
-
-        let mut iterator = Listener::check_value_number(iterator_value);
-
-        while iterator < max {
-            for instr in _ctx.instruction_all() {
-                self.enter_instruction(&instr);
-            }
-            iterator += 1;
-            self.symbol_table.insert(
-                _ctx.ID().unwrap().get_text(),
-                Value::Number(iterator as f32),
-            );
         }
     }
 }
