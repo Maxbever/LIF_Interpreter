@@ -9,17 +9,7 @@ use crate::generated_file_antlr::liflistener::lifListener;
 use crate::generated_file_antlr::lifparser;
 use crate::generated_file_antlr::lifparser::lifParser;
 use crate::generated_file_antlr::lifparser::lifParserContextType;
-use crate::lifparser::{
-    AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs,
-    AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext,
-    CreateContextAttrs, DeleteContext, DeleteContextAttrs, For_instrContext, For_instrContextAttrs,
-    Get_functionContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContextAll,
-    Init_varContextAttrs, InstructionContext, InstructionContextAttrs, Len_functionContextAttrs,
-    OperationContextAll, OperationContextAttrs, OutContext, OutContextAttrs, ReadContext,
-    ReadContextAttrs, Right_exprContextAll, Right_exprContextAttrs, RootContextAttrs,
-    Server_nameContextAll, Server_nameContextAttrs, TupleContextAll, TupleContextAttrs,
-    Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs,
-};
+use crate::lifparser::{AssignationContext, AssignationContextAttrs, AttachContext, AttachContextAttrs, AttributContextAll, AttributContextAttrs, ConnectContext, ConnectContextAttrs, CreateContext, CreateContextAttrs, DeleteContext, DeleteContextAttrs, For_instrContext, For_instrContextAttrs, Get_functionContextAttrs, In_instrContext, In_instrContextAttrs, Init_varContextAll, Init_varContextAttrs, InstructionContext, InstructionContextAttrs, Len_functionContextAttrs, OperationContextAll, OperationContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs, Right_exprContextAll, Right_exprContextAttrs, RootContextAttrs, Server_nameContextAll, Server_nameContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAttrs, Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, Encryption_keyContextAll, Encryption_keyContextAttrs};
 use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
 use antlr_rust::InputStream;
@@ -219,6 +209,17 @@ impl Listener {
         } else {
             attribute.get_text()
         };
+    }
+
+    fn validate_encryption_key(&self, key: Rc<Encryption_keyContextAll>) -> String {
+        let mut res = (if let Some(key) = key.ID() {
+            self.validate_variable(key)
+        } else {
+            key.get_text()
+        });
+        res.pop();
+        res.remove(0);
+        return res;
     }
 
     fn validate_tuple_name(&self, tuple_space_ctx: Rc<Tuple_space_nameContextAll>) -> String {
@@ -446,12 +447,17 @@ impl lifListener<'_> for Listener {
             if let Some(protocol) = _ctx.protocol() {
                 if let Some(ip_address) = _ctx.ip_address() {
                     if let Some(port) = _ctx.port() {
-                        let server_name = self.validate_server_name(server_name);
-                        let server = Server::new(
-                            ip_address.get_text(), port.get_text(),
-                            protocol.get_text(),server_name.clone(),
-                        );
-                        self.server_list.insert(server_name, server);
+                        if let Some(key) = _ctx.encryption_key() {
+                            let server_name = self.validate_server_name(server_name);
+                            let server = Server::new(
+                                ip_address.get_text(),
+                                port.get_text(),
+                                protocol.get_text(),
+                                server_name.clone(),
+                                self.validate_encryption_key(key),
+                            );
+                            self.server_list.insert(server_name, server);
+                        }
                     }
                 }
             }

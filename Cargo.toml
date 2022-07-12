@@ -12,3 +12,4 @@ net = []
 lazy_static = "1.4"
 antlr-rust = "0.2.2"
 mio = {version = "0.8", features = ["net","os-poll"]}
+aes-gcm = "0.9.4"
