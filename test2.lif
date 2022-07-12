@@ -4,9 +4,10 @@ var admin_attribute = "admin"
 var tuple_space_name = "data"
 var tuple_space_name_mean = "tuple_space_mean"
 var attribute = "attribute"
+var key = "attribute"
 
-connect server_tcp_name tcp:127.0.0.1:9000
-connect server_udp_name udp:127.0.0.1:9001
+connect server_tcp_name tcp:127.0.0.1:9000 key
+connect server_udp_name udp:127.0.0.1:9001 key
 
 create admin_attribute server_tcp_name:tuple_space_name attribute
 create admin_attribute server_udp_name:tuple_space_name_mean attribute

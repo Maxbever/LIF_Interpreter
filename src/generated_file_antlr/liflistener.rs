@@ -94,6 +94,39 @@ fn enter_for_instr(&mut self, _ctx: &For_instrContext<'input>) { }
 fn exit_for_instr(&mut self, _ctx: &For_instrContext<'input>) { }
 
 /**
+ * Enter a parse tree produced by {@link lifParser#while_instr}.
+ * @param ctx the parse tree
+ */
+fn enter_while_instr(&mut self, _ctx: &While_instrContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#while_instr}.
+ * @param ctx the parse tree
+ */
+fn exit_while_instr(&mut self, _ctx: &While_instrContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#boolean_operation}.
+ * @param ctx the parse tree
+ */
+fn enter_boolean_operation(&mut self, _ctx: &Boolean_operationContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#boolean_operation}.
+ * @param ctx the parse tree
+ */
+fn exit_boolean_operation(&mut self, _ctx: &Boolean_operationContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#basic_boolean_operation}.
+ * @param ctx the parse tree
+ */
+fn enter_basic_boolean_operation(&mut self, _ctx: &Basic_boolean_operationContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#basic_boolean_operation}.
+ * @param ctx the parse tree
+ */
+fn exit_basic_boolean_operation(&mut self, _ctx: &Basic_boolean_operationContext<'input>) { }
+
+/**
  * Enter a parse tree produced by {@link lifParser#operation}.
  * @param ctx the parse tree
  */
@@ -180,6 +213,17 @@ fn enter_attribut(&mut self, _ctx: &AttributContext<'input>) { }
  * @param ctx the parse tree
  */
 fn exit_attribut(&mut self, _ctx: &AttributContext<'input>) { }
+
+/**
+ * Enter a parse tree produced by {@link lifParser#encryption_key}.
+ * @param ctx the parse tree
+ */
+fn enter_encryption_key(&mut self, _ctx: &Encryption_keyContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#encryption_key}.
+ * @param ctx the parse tree
+ */
+fn exit_encryption_key(&mut self, _ctx: &Encryption_keyContext<'input>) { }
 
 /**
  * Enter a parse tree produced by {@link lifParser#tuple}.

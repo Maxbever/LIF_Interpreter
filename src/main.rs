@@ -135,7 +135,7 @@ impl Listener {
                             }
                             let response =
                                 server.send_message(String::from(operation) + SPACE + &*tuple_list);
-                            println!("{}", response);
+                            println!("In result: {}", response);
                             let _ = &self.server_list.insert(server_name.clone(), server);
                             return response;
                         }

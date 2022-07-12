@@ -1,8 +1,8 @@
-var s_1 = "server1"
+var s1 = "server1"
 var s2 = "server2"
 
-connect s1 tcp:127.0.0.1:9000
-connect s2 udp:127.0.0.1:9001
+connect s1 tcp:192.168.1.139:9000
+connect s2 udp:192.168.1.139:9001
 
 var attributes = "att1"
 var admin = "admin"

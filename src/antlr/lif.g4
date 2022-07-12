@@ -13,19 +13,31 @@ instruction:        connect
                 |   attach
                 |   out
                 |   for_instr
-                |   assignation;
+                |   assignation
+                |   while_instr;
 
-connect : CONNECT server_name protocol DOUBLEDOT ip_address DOUBLEDOT port;
+connect : CONNECT server_name protocol DOUBLEDOT ip_address DOUBLEDOT port encryption_key;
 
 create: CREATE attribut server_name DOUBLEDOT tuple_space_name (attribut)*;
 
 delete:  DELETE attribut server_name DOUBLEDOT tuple_space_name;
 
-attach: ATTACH server_name DOUBLEDOT tuple_space_name (attribut)*;
+attach: ATTACH LEFT_BRACE server_name tuple_space_name (attribut)* RIGHT_BRACE;
 
 out: OUT tuple(COMMA tuple)*;
 
 for_instr : FOR ID EQUAL operation TO LPAR operation RPAR LEFT_BRACE instruction+ RIGHT_BRACE;
+
+while_instr: WHILE LPAR boolean_operation RPAR LEFT_BRACE instruction+ RIGHT_BRACE;
+
+boolean_operation:      basic_boolean_operation
+                    |   basic_boolean_operation AND basic_boolean_operation
+                    |   basic_boolean_operation OR basic_boolean_operation;
+
+basic_boolean_operation:    right_expr EQUAL EQUAL right_expr
+                        |   right_expr RCHEVRON EQUAL right_expr
+                        |   right_expr LCHEVRON EQUAL right_expr
+                        |   right_expr EXCLAMATION EQUAL right_expr;
 
 operation :   get_function
             | len_function
@@ -48,6 +60,8 @@ read: READ tuple(COMMA tuple)*;
 in_instr: IN tuple(COMMA tuple)*;
 
 attribut: STRING | ID ;
+
+encryption_key: STRING | ID ;
 
 tuple : LPAR (tuple_content (COMMA tuple_content)*) RPAR | ID;
 

@@ -132,10 +132,12 @@ impl Server {
                 Ok(response) => {
                     if response.len() != 0 {
                         let text = from_utf8(&response).unwrap();
-                        match tx_response.send(text.parse().unwrap()) {
-                            Ok(_) => {}
-                            Err(error) => {eprintln!("{}",error)}
-                        };
+                        if text != String::from("Connected"){
+                            match tx_response.send(text.parse().unwrap()) {
+                                Ok(_) => {}
+                                Err(error) => {eprintln!("{}",error)}
+                            };
+                        }
                         break;
                     }
                 }
@@ -175,7 +177,6 @@ impl Server {
                 eprintln!("{}", error)
             }
         };
-
         loop {
             match rx_response.recv_timeout(Duration::from_secs(TIMEOUT)) {
                 Ok(response) => {

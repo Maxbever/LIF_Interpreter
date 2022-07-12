@@ -19,6 +19,9 @@ GET : 'get';
 LEN : 'len';
 FOR : 'for';
 TO : 'to';
+WHILE : 'while';
+AND : 'and';
+OR : 'OR';
 
 // Char
 LPAR: '(';
@@ -40,6 +43,10 @@ PLUS: '+';
 MINUS: '-';
 RIGHT_BRACE : '}';
 LEFT_BRACE : '{';
+LCHEVRON : '<';
+RCHEVRON : '>';
+AMPERSAND : '&';
+EXCLAMATION : '!';
 
 ID: LETTER (LETTER | DIGIT | WILDCARD)* ;
 fragment LETTER: 'A'..'Z' | 'a'..'z' ;
