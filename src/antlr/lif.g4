@@ -34,10 +34,10 @@ boolean_operation:      basic_boolean_operation
                     |   basic_boolean_operation AND basic_boolean_operation
                     |   basic_boolean_operation OR basic_boolean_operation;
 
-basic_boolean_operation:    right_expr EQUAL EQUAL right_expr
+basic_boolean_operation:    right_expr EQUAL EQUAL (right_expr || empty_tuple)
                         |   right_expr RCHEVRON EQUAL right_expr
                         |   right_expr LCHEVRON EQUAL right_expr
-                        |   right_expr EXCLAMATION EQUAL right_expr;
+                        |   right_expr EXCLAMATION EQUAL (right_expr || empty_tuple);
 
 operation :   get_function
             | len_function
@@ -82,3 +82,5 @@ protocol : UDP | TCP;
 ip_address: NUMBER DOT NUMBER DOT NUMBER DOT NUMBER;
 
 port: NUMBER;
+
+empty_tuple : LPAR RPAR ;

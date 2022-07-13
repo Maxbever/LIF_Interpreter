@@ -31,6 +31,7 @@ use server::Server;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::{env, fs};
+use antlr_rust::char_stream::InputData;
 
 mod constant;
 mod generated_file_antlr;
@@ -402,6 +403,32 @@ impl Listener {
         panic!("Right Expression invalid")
     }
 
+    fn manage_right_expr_with_tuple(&self, right_context: Rc<Right_exprContextAll>) -> String {
+        return if let Some(id_context) = right_context.ID() {
+            let id_variable = id_context.get_text();
+            match &self.symbol_table.get(&id_variable) {
+                None => {
+                    panic!("Variable {} not found", &id_variable)
+                }
+                Some(variable) => match variable {
+                    Value::Tuple(tuple) => {
+                        return if tuple.is_empty() {
+                            String::from("()")
+                        } else {
+                            String::new()
+                        }
+                    }
+                    Value::Number(_) | Value::String(_) | Value::Char(_) => {
+                        String::new()
+                    }
+                    Value::ID(id_value) => return id_value.get_value().to_string(),
+                },
+            }
+        } else {
+            String::new()
+        }
+    }
+
     fn manage_var_expr_content(&self, id_context: Rc<TerminalNode<lifParserContextType>>) -> f32 {
         let id_variable = id_context.get_text();
         match &self.symbol_table.get(&id_variable) {
@@ -459,8 +486,12 @@ impl Listener {
             self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
                 <= self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
         } else if let Some(_) = boolean_expr.EXCLAMATION() {
-            self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
-                != self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
+            if let Some(_) = boolean_expr.empty_tuple(){
+                self.manage_right_expr_with_tuple(boolean_expr.right_expr(0).unwrap()) != String::from("()")
+            }else {
+                self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
+                    != self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
+            }
         } else {
             self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
                 == self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
@@ -703,14 +734,15 @@ impl lifListener<'_> for Listener {
                         }
                     }
                 }
-                if !response.contains("ERROR") && !response.is_empty() {
-                    let value = self.parse_tuple(response);
-                    let _ = self.symbol_table.insert(id_context.get_text(), value);
+                if !response.is_empty() {
+                    if !response.contains("ERROR") {
+                        let value = self.parse_tuple(response);
+                        let _ = self.symbol_table.insert(id_context.get_text(), value);
+                    } else {
+                        let value = Value::Tuple(vec![]);
+                        let _ = self.symbol_table.insert(id_context.get_text(), value);
+                    }
                 }
-                // else {
-                //     let value = self.parse_tuple(String::from("()"));
-                //     let _ = self.symbol_table.insert(id_context.get_text(), value);
-                // }
             }
         }
     }

@@ -31,14 +31,13 @@ for iterator = 0 to (data.len()) {
 */
 
 var data = in ("temp", _)
-var data = data.get(1)
-var sum = data
+var sum = 0
 
-while ( data != 29 ){
-    var data = in ("temp", _)
+while ( data != () ){
     var data = data.get(1)
     var sum = sum + data
     out (sum)
+    var data = in ("temp", _)
 }
 
 var mean = sum / 5

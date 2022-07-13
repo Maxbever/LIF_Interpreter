@@ -313,4 +313,15 @@ fn enter_port(&mut self, _ctx: &PortContext<'input>) { }
  */
 fn exit_port(&mut self, _ctx: &PortContext<'input>) { }
 
+/**
+ * Enter a parse tree produced by {@link lifParser#empty_tuple}.
+ * @param ctx the parse tree
+ */
+fn enter_empty_tuple(&mut self, _ctx: &Empty_tupleContext<'input>) { }
+/**
+ * Exit a parse tree produced by {@link lifParser#empty_tuple}.
+ * @param ctx the parse tree
+ */
+fn exit_empty_tuple(&mut self, _ctx: &Empty_tupleContext<'input>) { }
+
 }
