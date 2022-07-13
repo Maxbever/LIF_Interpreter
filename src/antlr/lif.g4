@@ -31,8 +31,8 @@ for_instr : FOR ID EQUAL operation TO LPAR operation RPAR LEFT_BRACE instruction
 while_instr: WHILE LPAR boolean_operation RPAR LEFT_BRACE instruction+ RIGHT_BRACE;
 
 boolean_operation:      basic_boolean_operation
-                    |   basic_boolean_operation AND basic_boolean_operation
-                    |   basic_boolean_operation OR basic_boolean_operation;
+                    |   boolean_operation AND basic_boolean_operation
+                    |   boolean_operation OR basic_boolean_operation;
 
 basic_boolean_operation:    right_expr EQUAL EQUAL (right_expr || empty_tuple)
                         |   right_expr RCHEVRON EQUAL right_expr

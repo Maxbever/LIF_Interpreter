@@ -21,8 +21,8 @@ use crate::lifparser::{
     OperationContextAttrs, OutContext, OutContextAttrs, ReadContext, ReadContextAttrs,
     Right_exprContextAll, Right_exprContextAttrs, RootContextAttrs, Server_nameContextAll,
     Server_nameContextAttrs, TupleContextAll, TupleContextAttrs, Tuple_contentContextAttrs,
-    Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, While_instrContext,
-    While_instrContextAll, While_instrContextAttrs,
+    Tuple_space_nameContextAll, Tuple_space_nameContextAttrs, While_instrContextAll,
+    While_instrContextAttrs,
 };
 use antlr_rust::common_token_stream::CommonTokenStream;
 use antlr_rust::tree::{ParseTree, ParseTreeListener, TerminalNode};
@@ -31,7 +31,6 @@ use server::Server;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::{env, fs};
-use antlr_rust::char_stream::InputData;
 
 mod constant;
 mod generated_file_antlr;
@@ -227,11 +226,11 @@ impl Listener {
     }
 
     fn validate_encryption_key(&self, key: Rc<Encryption_keyContextAll>) -> String {
-        let mut res = (if let Some(key) = key.ID() {
+        let mut res = if let Some(key) = key.ID() {
             self.validate_variable(key)
         } else {
             key.get_text()
-        });
+        };
         res.pop();
         res.remove(0);
         return res;
@@ -418,15 +417,13 @@ impl Listener {
                             String::new()
                         }
                     }
-                    Value::Number(_) | Value::String(_) | Value::Char(_) => {
-                        String::new()
-                    }
+                    Value::Number(_) | Value::String(_) | Value::Char(_) => String::new(),
                     Value::ID(id_value) => return id_value.get_value().to_string(),
                 },
             }
         } else {
             String::new()
-        }
+        };
     }
 
     fn manage_var_expr_content(&self, id_context: Rc<TerminalNode<lifParserContextType>>) -> f32 {
@@ -461,17 +458,17 @@ impl Listener {
 
     fn validate_boolean_operation(&self, boolean_expr: &Rc<Boolean_operationContextAll>) -> bool {
         return if let Some(_) = boolean_expr.AND() {
-            self.validate_boolean_basic_operation(boolean_expr.basic_boolean_operation(0).unwrap())
+            self.validate_boolean_operation(&boolean_expr.boolean_operation().unwrap())
                 && self.validate_boolean_basic_operation(
-                    boolean_expr.basic_boolean_operation(1).unwrap(),
+                    boolean_expr.basic_boolean_operation().unwrap(),
                 )
         } else if let Some(_) = boolean_expr.OR() {
-            self.validate_boolean_basic_operation(boolean_expr.basic_boolean_operation(0).unwrap())
+            self.validate_boolean_operation(&boolean_expr.boolean_operation().unwrap())
                 || self.validate_boolean_basic_operation(
-                    boolean_expr.basic_boolean_operation(1).unwrap(),
+                    boolean_expr.basic_boolean_operation().unwrap(),
                 )
         } else {
-            self.validate_boolean_basic_operation(boolean_expr.basic_boolean_operation(0).unwrap())
+            self.validate_boolean_basic_operation(boolean_expr.basic_boolean_operation().unwrap())
         };
     }
 
@@ -486,9 +483,10 @@ impl Listener {
             self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
                 <= self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
         } else if let Some(_) = boolean_expr.EXCLAMATION() {
-            if let Some(_) = boolean_expr.empty_tuple(){
-                self.manage_right_expr_with_tuple(boolean_expr.right_expr(0).unwrap()) != String::from("()")
-            }else {
+            if let Some(_) = boolean_expr.empty_tuple() {
+                self.manage_right_expr_with_tuple(boolean_expr.right_expr(0).unwrap())
+                    != String::from("()")
+            } else {
                 self.manage_right_expr(boolean_expr.right_expr(0).unwrap())
                     != self.manage_right_expr(boolean_expr.right_expr(1).unwrap())
             }
