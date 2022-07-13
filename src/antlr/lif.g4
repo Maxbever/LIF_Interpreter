@@ -22,7 +22,7 @@ create: CREATE attribut server_name DOUBLEDOT tuple_space_name (attribut)*;
 
 delete:  DELETE attribut server_name DOUBLEDOT tuple_space_name;
 
-attach: ATTACH LEFT_BRACE server_name tuple_space_name (attribut)* RIGHT_BRACE;
+attach: ATTACH server_name DOUBLEDOT tuple_space_name (attribut)* LEFT_BRACE (instruction)* RIGHT_BRACE;
 
 out: OUT tuple(COMMA tuple)*;
 

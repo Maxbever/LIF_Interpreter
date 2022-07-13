@@ -673,6 +673,9 @@ impl lifListener<'_> for Listener {
                         }
                     }
                 }
+                for instr in _ctx.instruction_all() {
+                    self.enter_instruction(&instr);
+                }
             }
         }
     }

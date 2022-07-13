@@ -12,41 +12,33 @@ connect server_udp_name udp:127.0.0.1:9001 key
 create admin_attribute server_tcp_name:tuple_space_name attribute
 create admin_attribute server_udp_name:tuple_space_name_mean attribute
 
-attach {
-    server_tcp_name
-    tuple_space_name
-    attribute
-}
+attach server_tcp_name:tuple_space_name attribute {
+    out ("temp", 21),("temp", 23),("temp", 29),("temp", 25),("temp", 20)
 
-out ("temp", 21),("temp", 23),("temp", 29),("temp", 25),("temp", 20)
+    /*
+    var data = in ("temp", _),("temp", _), ("temp", _), ("temp", _), ("temp", _)
+    var sum = 0
 
-/*
-var data = in ("temp", _),("temp", _), ("temp", _), ("temp", _), ("temp", _)
-var sum = 0
+    for iterator = 0 to (data.len()) {
+        var tuple = data.get(iterator)
+        var sum = sum + tuple.get(1)
+    }
+    */
 
-for iterator = 0 to (data.len()) {
-    var tuple = data.get(iterator)
-    var sum = sum + tuple.get(1)
-}
-*/
-
-var data = in ("temp", _)
-var sum = 0
-
-while ( data != () ){
-    var data = data.get(1)
-    var sum = sum + data
-    out (sum)
     var data = in ("temp", _)
+    var sum = 0
+
+    while ( data != () ){
+        var data = data.get(1)
+        var sum = sum + data
+        out (sum)
+        var data = in ("temp", _)
+    }
+
+    var mean = sum / data.len()
+    var test = mean
 }
 
-var mean = sum / 5
-var test = mean
-
-attach {
-    server_udp_name
-    tuple_space_name_mean
-    attribute
+attach server_udp_name:tuple_space_name_mean attribute {
+    out (mean)
 }
-
-out (mean)
